@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://barier.makseq.com/</loc>
+    <lastmod>2026-09-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://barier.makseq.com/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://barier.makseq.com/?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://barier.makseq.com/"/>
+  </url>
+  <url>
+    <loc>https://barier.makseq.com/player/</loc>
+    <lastmod>2026-09-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://barier.makseq.com/player/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://barier.makseq.com/player/?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://barier.makseq.com/player/"/>
+  </url>
+  <url>
+    <loc>https://barier.makseq.com/sim1d/</loc>
+    <lastmod>2026-09-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://barier.makseq.com/sim1d/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://barier.makseq.com/sim1d/?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://barier.makseq.com/sim1d/"/>
+  </url>
+</urlset>

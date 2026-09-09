@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+(function(){
+  var q=new URLSearchParams(location.search).get('lang'), s=null;
+  try{ s=localStorage.getItem('lang'); }catch(e){}
+  var l=(q==='en'||q==='ru')?q:((s==='en'||s==='ru')?s:'en');
+  if(q===l){ try{ localStorage.setItem('lang',l); }catch(e){} }
+  document.documentElement.lang=l;
+  document.documentElement.setAttribute('data-lang',l);
+  window.LANG=l;
+})();
+</script>
+<title>Fluid model of atmospheric-pressure plasma | DBD in oxygen</title>
+<meta name="description" content="A fluid model of a dielectric barrier discharge in pure oxygen at atmospheric pressure, with a live 1D simulator and a 2D axisymmetric player.">
+<meta name="robots" content="index,follow">
+<meta name="theme-color" content="#0b0f14">
+<link rel="canonical" href="https://barier.makseq.com/">
+<link rel="alternate" hreflang="en" href="https://barier.makseq.com/">
+<link rel="alternate" hreflang="ru" href="https://barier.makseq.com/?lang=ru">
+<link rel="alternate" hreflang="x-default" href="https://barier.makseq.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dielectric barrier discharge in oxygen">
+<meta property="og:url" content="https://barier.makseq.com/">
+<meta property="og:title" content="Fluid model of atmospheric-pressure plasma | DBD in oxygen">
+<meta property="og:description" content="A fluid model of a dielectric barrier discharge in pure oxygen at atmospheric pressure, with a live 1D simulator and a 2D axisymmetric player.">
+<meta property="og:image" content="https://barier.makseq.com/og/landing.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Dielectric barrier discharge in oxygen: the landing page of the numerical model, 1D simulator and 2D player">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fluid model of atmospheric-pressure plasma | DBD in oxygen">
+<meta name="twitter:description" content="A fluid model of a dielectric barrier discharge in pure oxygen at atmospheric pressure, with a live 1D simulator and a 2D axisymmetric player.">
+<meta name="twitter:image" content="https://barier.makseq.com/og/landing.jpg">
+<meta name="twitter:image:alt" content="Dielectric barrier discharge in oxygen: the landing page of the numerical model, 1D simulator and 2D player">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://barier.makseq.com/#website",
+      "url": "https://barier.makseq.com/",
+      "name": "Dielectric barrier discharge in oxygen",
+      "description": "A fluid model of a dielectric barrier discharge in pure oxygen at atmospheric pressure, with a live 1D simulator and a 2D axisymmetric player.",
+      "inLanguage": ["en", "ru"],
+      "author": { "@id": "https://makseq.com/#person" },
+      "publisher": { "@id": "https://makseq.com/#person" }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://makseq.com/#person",
+      "name": "Max Tkachenko",
+      "url": "https://makseq.com"
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://barier.makseq.com/#webpage",
+      "url": "https://barier.makseq.com/",
+      "name": "Fluid model of atmospheric-pressure plasma | DBD in oxygen",
+      "description": "A fluid model of a dielectric barrier discharge in pure oxygen at atmospheric pressure, with a live 1D simulator and a 2D axisymmetric player.",
+      "isPartOf": { "@id": "https://barier.makseq.com/#website" },
+      "inLanguage": "en",
+      "breadcrumb": { "@id": "https://barier.makseq.com/#breadcrumb" },
+      "about": { "@id": "https://barier.makseq.com/#model" },
+      "primaryImageOfPage": {
+        "@type": "ImageObject",
+        "url": "https://barier.makseq.com/og/landing.jpg",
+        "width": 1200,
+        "height": 630
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://barier.makseq.com/#breadcrumb",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Dielectric barrier discharge in oxygen", "item": "https://barier.makseq.com/" }
+      ]
+    },
+    {
+      "@type": "CreativeWork",
+      "@id": "https://barier.makseq.com/#model",
+      "name": "Fluid model of a dielectric barrier discharge in pure oxygen",
+      "abstract": "A one-dimensional and a two-dimensional axisymmetric fluid model of a dielectric barrier discharge in pure O2 at atmospheric pressure: drift-diffusion transport in the local field approximation, Poisson equation with variable permittivity and surface charge on the dielectric, nine species and photoionization with photoemission.",
+      "inLanguage": "en",
+      "author": { "@id": "https://makseq.com/#person" },
+      "isPartOf": { "@id": "https://barier.makseq.com/#website" },
+      "about": [
+        { "@type": "Thing", "name": "Plasma physics" },
+        { "@type": "Thing", "name": "Dielectric barrier discharge" },
+        { "@type": "Thing", "name": "Atmospheric-pressure plasma" },
+        { "@type": "Thing", "name": "Computational physics" }
+      ],
+      "keywords": "dielectric barrier discharge, oxygen plasma, fluid model, drift-diffusion, photoionization, surface charge, ozonizer"
+    }
+  ]
+}
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2310141a'/%3E%3Crect x='4' y='6' width='24' height='3' fill='%234b5566'/%3E%3Crect x='4' y='23' width='24' height='3' fill='%234b5566'/%3E%3Cpath d='M16 9 L12 16 L18 16 L14 23' stroke='%23ffd166' stroke-width='2.2' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#111823; --panel2:#0e141d; --line:#1e2836;
+    --fg:#dfe6f0; --dim:#8fa0b5; --dim2:#63748a;
+    --amber:#ffb454; --hot:#ff6b4a; --cyan:#5ac8fa; --violet:#a78bfa;
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  html[data-lang="en"] [lang="ru"], html[data-lang="ru"] [lang="en"]{display:none !important}
+  body{
+    background:
+      radial-gradient(1100px 620px at 78% -12%, rgba(255,140,60,.10), transparent 60%),
+      radial-gradient(900px 520px at 12% 0%, rgba(90,200,250,.07), transparent 55%),
+      var(--bg);
+    color:var(--fg);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  code,kbd,.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+
+  .lang{
+    position:fixed;top:14px;right:16px;z-index:50;
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:12.5px;letter-spacing:.09em;
+    padding:6px 12px;border-radius:999px;
+    background:rgba(10,14,20,.78);border:1px solid var(--line);
+    backdrop-filter:blur(6px);
+  }
+  .lang a{color:var(--dim2);text-decoration:none;font-weight:600}
+  .lang a:hover{color:var(--fg)}
+  .lang a[aria-current="true"]{color:var(--amber)}
+  .lang a:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+  .lang .sep{color:#2a3546}
+
+  header{padding:76px 0 40px}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--dim2);margin-bottom:20px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--amber);
+    box-shadow:0 0 12px var(--amber)}
+  h1{
+    font-size:clamp(30px,5vw,50px);line-height:1.1;margin:0 0 18px;
+    font-weight:650;letter-spacing:-.02em;
+  }
+  h1 .accent{
+    background:linear-gradient(92deg,var(--amber),var(--hot));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .lede{font-size:18px;color:var(--dim);max-width:64ch;margin:0}
+
+  .facts{
+    display:flex;flex-wrap:wrap;gap:10px;margin:30px 0 0;padding:0;list-style:none;
+  }
+  .facts li{
+    font-size:13px;color:var(--dim);
+    border:1px solid var(--line);border-radius:999px;padding:6px 14px;
+    background:rgba(255,255,255,.02);
+  }
+  .facts b{color:var(--fg);font-weight:600}
+
+  h2{
+    font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim2);
+    margin:64px 0 20px;font-weight:600;
+  }
+
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{
+    display:flex;flex-direction:column;
+    background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    text-decoration:none;color:inherit;
+    transition:border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+  }
+  .card:hover{
+    border-color:#31435a;transform:translateY(-3px);
+    box-shadow:0 14px 40px -18px rgba(0,0,0,.9);
+  }
+  .card:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+  .thumb{
+    aspect-ratio:16/10;background:#070b10;overflow:hidden;
+    border-bottom:1px solid var(--line);position:relative;
+  }
+  .thumb img{width:100%;height:100%;object-fit:cover;object-position:top left;display:block;
+    filter:saturate(1.05)}
+  .badge{
+    position:absolute;top:11px;left:11px;z-index:2;
+    font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+    padding:4px 9px;border-radius:999px;
+    background:rgba(10,14,20,.86);border:1px solid var(--line);color:var(--dim);
+    backdrop-filter:blur(4px);
+  }
+  .badge.live{color:#0b0f14;background:var(--amber);border-color:transparent;font-weight:650}
+  .card-body{padding:18px 19px 20px;flex:1;display:flex;flex-direction:column}
+  .card h3{margin:0 0 8px;font-size:17.5px;font-weight:640;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--dim);font-size:14.2px;line-height:1.6;flex:1}
+  .card .go{
+    margin-top:15px;font-size:13.5px;color:var(--amber);font-weight:600;
+    display:inline-flex;align-items:center;gap:7px;
+  }
+  .card:hover .go .arr{transform:translateX(3px)}
+  .go .arr{transition:transform .18s ease;display:inline-block}
+
+  .panel{
+    background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);border-radius:14px;padding:26px 28px;
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .panel h3{margin:0 0 12px;font-size:15.5px;font-weight:640}
+  .panel p{margin:0 0 12px;color:var(--dim);font-size:14.5px}
+  .panel p:last-child{margin-bottom:0}
+  .panel ul{margin:0;padding-left:19px;color:var(--dim);font-size:14.5px}
+  .panel li{margin-bottom:7px}
+  .panel li:last-child{margin-bottom:0}
+  .panel li b,.panel p b{color:var(--fg);font-weight:600}
+  .num{color:var(--amber);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:.94em}
+
+  .warn{border-color:#3a2a18;background:linear-gradient(180deg,#17110a,#120d07)}
+  .warn h3{color:var(--amber)}
+
+  footer{
+    margin:70px 0 60px;padding-top:26px;border-top:1px solid var(--line);
+    color:var(--dim2);font-size:13.5px;display:flex;flex-wrap:wrap;gap:14px 26px;
+    align-items:baseline;justify-content:space-between;
+  }
+  footer a{color:var(--dim);text-decoration:none;border-bottom:1px solid #2a3546}
+  footer a:hover{color:var(--fg)}
+
+  @media (max-width:900px){
+    .cards{grid-template-columns:1fr}
+    .grid2{grid-template-columns:1fr}
+    header{padding:52px 0 30px}
+  }
+</style>
+</head>
+<body>
+
+<nav class="lang" aria-label="Язык / Language"><a href="?lang=ru" data-lang-link="ru">RU</a><span class="sep">·</span><a href="?lang=en" data-lang-link="en">EN</a></nav>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow"><span class="dot"></span> <span lang="ru">численная модель плазмы</span><span lang="en">numerical plasma model</span></div>
+    <h1><span lang="ru">Барьерный разряд<br>в <span class="accent">кислороде</span></span><span lang="en">Dielectric barrier discharge<br>in <span class="accent">oxygen</span></span></h1>
+    <p class="lede" lang="ru">
+      Fluid-модель диэлектрического барьерного разряда в чистом O₂ при атмосферном давлении:
+      дрейф-диффузия в локальном приближении поля, уравнение Пуассона с переменной проницаемостью
+      и накоплением поверхностного заряда, девять сортов частиц, фотопроцессы.
+      Одномерная версия считается прямо в браузере, двумерная — заранее, и проигрывается как анимация.
+    </p>
+    <p class="lede" lang="en">
+      A fluid model of a dielectric barrier discharge in pure O₂ at atmospheric pressure:
+      drift-diffusion in the local field approximation, a Poisson equation with variable permittivity
+      and surface charge accumulation, nine particle species, photoprocesses.
+      The one-dimensional version is computed right in the browser; the two-dimensional one is
+      computed in advance and played back as an animation.
+    </p>
+    <ul class="facts" lang="ru">
+      <li>зазор <b>1&nbsp;мм</b></li>
+      <li>барьеры Al₂O₃ <b>2×0.5&nbsp;мм</b>, ε<sub>r</sub>&nbsp;=&nbsp;9</li>
+      <li><b>10&nbsp;кВ</b> · <b>10&nbsp;кГц</b></li>
+      <li>частицы: e, O₂⁺, O₄⁺, O⁻, O₂⁻, O₃⁻, O, O₃, O₂(a¹Δ)</li>
+    </ul>
+    <ul class="facts" lang="en">
+      <li>gap <b>1&nbsp;mm</b></li>
+      <li>Al₂O₃ barriers <b>2×0.5&nbsp;mm</b>, ε<sub>r</sub>&nbsp;=&nbsp;9</li>
+      <li><b>10&nbsp;kV</b> · <b>10&nbsp;kHz</b></li>
+      <li>species: e, O₂⁺, O₄⁺, O⁻, O₂⁻, O₃⁻, O, O₃, O₂(a¹Δ)</li>
+    </ul>
+  </header>
+
+  <h2><span lang="ru">Демонстрации</span><span lang="en">Demos</span></h2>
+  <div class="cards">
+
+    <a class="card" href="sim1d/" lang="ru">
+      <div class="thumb">
+        <span class="badge live">интерактивно</span>
+        <img src="shots/sim1d.png" width="1600" height="1000" alt="Интерфейс одномерного симулятора: срез разрядного промежутка, осциллограммы, фигура Лиссажу" loading="lazy" decoding="async">
+      </div>
+      <div class="card-body">
+        <h3>1D-симулятор</h3>
+        <p>
+          Считает в реальном времени в браузере. Видно, как зажигаются микроразряды,
+          как копится поверхностный заряд и гасит разряд, как ток идёт короткими импульсами.
+          Параметры крутятся вживую: напряжение, частота, зазор, толщина барьера, вторичная эмиссия.
+        </p>
+        <span class="go">Открыть <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <a class="card" href="sim1d/" lang="en">
+      <div class="thumb">
+        <span class="badge live">interactive</span>
+        <img src="shots/sim1d.png" width="1600" height="1000" alt="The 1D simulator interface: a slice through the discharge gap, waveforms and a Lissajous figure" loading="lazy" decoding="async">
+      </div>
+      <div class="card-body">
+        <h3>1D simulator</h3>
+        <p>
+          Runs in real time in the browser. You can watch microdischarges ignite, surface charge build up
+          and quench the discharge, and the current flow in short pulses.
+          Parameters can be tuned while it runs: voltage, frequency, gap, barrier thickness, secondary emission.
+        </p>
+        <span class="go">Open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <a class="card" href="player/" lang="ru">
+      <div class="thumb">
+        <span class="badge">анимация</span>
+        <img src="shots/player.png" width="1600" height="1000" alt="Двумерный осесимметричный плеер: срез промежутка с филаментом и цветовой картой плотности электронов" loading="lazy" decoding="async">
+      </div>
+      <div class="card-body">
+        <h3>2D осесимметричный плеер</h3>
+        <p>
+          Расчёт в координатах (r,&nbsp;z) сделан заранее — здесь он проигрывается покадрово.
+          Переключаются поля: плотность электронов, свечение, объёмный заряд, поле, E/N,
+          скорости фотоионизации и фотоотлипания. Шкала времени двухмасштабная —
+          весь период в миллисекундах и лупа на импульс в наносекундах.
+        </p>
+        <span class="go">Открыть <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <a class="card" href="player/" lang="en">
+      <div class="thumb">
+        <span class="badge">animation</span>
+        <img src="shots/player.png" width="1600" height="1000" alt="The 2D axisymmetric player: a slice through the gap with a filament and a color map of electron density" loading="lazy" decoding="async">
+      </div>
+      <div class="card-body">
+        <h3>2D axisymmetric player</h3>
+        <p>
+          The calculation in (r,&nbsp;z) coordinates was done in advance — here it is played back
+          frame by frame. You can switch between fields: electron density, glow, space charge, field, E/N,
+          photoionization and photodetachment rates. The time axis has two scales —
+          the whole period in milliseconds, and a zoom on the pulse in nanoseconds.
+        </p>
+        <span class="go">Open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <a class="card" href="player/plots-demo.html" lang="ru">
+      <div class="thumb">
+        <span class="badge">графики</span>
+        <img src="shots/plots.png" width="1600" height="1000" alt="Панель графиков: осциллограммы, фигура Лиссажу, вклад фотопроцессов, профили плотностей" loading="lazy" decoding="async">
+      </div>
+      <div class="card-body">
+        <h3>Панель диагностики</h3>
+        <p>
+          Осциллограммы напряжения и тока, фигура Лиссажу Q–V с извлечением ёмкостей
+          и мощности по методу Мэнли, вклад трёх фотопроцессов против ударной ионизации,
+          профили плотностей вдоль оси и поверхностный заряд σ(r) на обеих поверхностях.
+        </p>
+        <span class="go">Открыть <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <a class="card" href="player/plots-demo.html" lang="en">
+      <div class="thumb">
+        <span class="badge">plots</span>
+        <img src="shots/plots.png" width="1600" height="1000" alt="The plots panel: waveforms, a Lissajous figure, the contribution of the photoprocesses, density profiles" loading="lazy" decoding="async">
+      </div>
+      <div class="card-body">
+        <h3>Diagnostics panel</h3>
+        <p>
+          Voltage and current waveforms, the Q–V Lissajous figure with capacitances and power
+          extracted by the Manley method, the contribution of the three photoprocesses compared with impact
+          ionization, density profiles along the axis and the surface charge σ(r) on both surfaces.
+        </p>
+        <span class="go">Open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+  </div>
+
+  <h2><span lang="ru">Что моделируется</span><span lang="en">What is modeled</span></h2>
+  <div class="grid2">
+    <div class="panel" lang="ru">
+      <h3>Физика</h3>
+      <ul>
+        <li>Ударная ионизация, диссоциативное и трёхтельное прилипание, отлипание, ион-ионная
+          рекомбинация, кластеризация в O₄⁺ и O₃⁻, наработка озона.</li>
+        <li>Коэффициенты получены решением двухчленного уравнения Больцмана на сечениях
+          <b>Phelps</b>, <b>Biagi</b> и <b>IST-Lisbon</b>; сверены с опубликованной таблицей
+          Phelps с точностью <span class="num">1–4 %</span>.</li>
+        <li>Критическое поле α&nbsp;=&nbsp;η выходит <span class="num">127.8 Тд</span>,
+          что согласуется с экспериментальным пробойным полем O₂
+          <span class="num">30–32 кВ/см</span>.</li>
+        <li>Фотопроцессы: объёмная фотоионизация, фотоэмиссия с диэлектрика и фотоотлипание
+          от отрицательных ионов. Их можно включать и выключать по отдельности.</li>
+      </ul>
+    </div>
+    <div class="panel" lang="en">
+      <h3>Physics</h3>
+      <ul>
+        <li>Impact ionization, dissociative and three-body attachment, detachment, ion–ion
+          recombination, clustering into O₄⁺ and O₃⁻, ozone production.</li>
+        <li>The coefficients come from a two-term Boltzmann solution based on the
+          <b>Phelps</b>, <b>Biagi</b> and <b>IST-Lisbon</b> cross-section sets; they match the published
+          Phelps table to within <span class="num">1–4 %</span>.</li>
+        <li>The critical field where α&nbsp;=&nbsp;η comes out at <span class="num">127.8 Td</span>,
+          which agrees with the measured breakdown field of O₂,
+          <span class="num">30–32 kV/cm</span>.</li>
+        <li>Photoprocesses: bulk photoionization, photoemission from the dielectric and
+          photodetachment from negative ions. Each of them can be switched on and off separately.</li>
+      </ul>
+    </div>
+    <div class="panel" lang="ru">
+      <h3>Численная схема</h3>
+      <ul>
+        <li>Потоки по схеме <b>Шарфеттера–Гуммеля</b>, источники через reaction extents —
+          заряд сохраняется машинно точно.</li>
+        <li>В 2D — <b>прямой разделимый решатель Пуассона</b>: диагонализация радиального
+          оператора с симметризацией по объёмным весам плюс прогонка по z.
+          Сверен с независимым итерационным решателем до <span class="num">10⁻¹³</span>.</li>
+        <li>Полунеявная схема снимает ограничение по диэлектрической релаксации,
+          шаг по времени адаптивный.</li>
+        <li>Ток считается по формуле <b>Сато–Морроу</b> с предвычисленным весовым полем,
+          а не как производная заряда.</li>
+      </ul>
+    </div>
+    <div class="panel" lang="en">
+      <h3>Numerical scheme</h3>
+      <ul>
+        <li>Fluxes follow the <b>Scharfetter–Gummel</b> scheme and sources go through reaction
+          extents, so charge is conserved to machine precision.</li>
+        <li>In 2D there is a <b>direct separable Poisson solver</b>: the radial operator is
+          diagonalized, symmetrized by volume weights, and combined with a tridiagonal sweep along z.
+          It matches an independent iterative solver to <span class="num">10⁻¹³</span>.</li>
+        <li>A semi-implicit scheme lifts the dielectric relaxation limit on the time step,
+          and the step itself is adaptive.</li>
+        <li>The current is computed from the <b>Sato–Morrow</b> formula with a precomputed
+          weighting field, not as the derivative of charge.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span lang="ru">Чего модель не умеет</span><span lang="en">What the model cannot do</span></h2>
+  <div class="panel warn" lang="ru">
+    <p>
+      Здесь честно, потому что без этого числа легко принять за более достоверные, чем они есть.
+    </p>
+    <ul>
+      <li><b>Пристеночный слой не разрешён.</b> Дебаевская длина в филаменте порядка
+        <span class="num">15 нм</span>, а сетка — микроны. Потоко-ограничивающее граничное
+        условие Хагелаара снимает численный разгон, но точность у электродов остаётся ограниченной.</li>
+      <li><b>Осесимметрия не даёт азимутальных мод.</b> Модель описывает один центральный канал;
+        самоорганизацию решётки микроразрядов она воспроизвести не может принципиально —
+        внеосевой канал в такой геометрии становится кольцом.</li>
+      <li><b>Веса фотоионизации перенесены из азотного спектра.</b> Для чистого O₂ нужен
+        собственный спектральный фит; длины поглощения при этом переносятся законно, а веса — нет.</li>
+      <li><b>Одномерная модель не воспроизводит филамент.</b> Вся площадь зажигается синхронно,
+        поэтому 1D годится для интегральных величин и качественной картины, но не для морфологии.</li>
+      <li><b>Прогоны при 10 и 14 кВ обрываются на зажигании.</b> Исправление найдено и проверено
+        в 1D, в 2D перенесено, но не верифицировано — анимация при высоком напряжении
+        останавливается на пробое.</li>
+    </ul>
+  </div>
+  <div class="panel warn" lang="en">
+    <p>
+      This part is blunt on purpose: without it the numbers are easy to trust more than they deserve.
+    </p>
+    <ul>
+      <li><b>The sheath is not resolved.</b> The Debye length inside a filament is on the order of
+        <span class="num">15 nm</span>, while the grid is microns. The Hagelaar flux-limiting boundary
+        condition removes the numerical runaway, but accuracy at the electrodes stays limited.</li>
+      <li><b>Axisymmetry leaves out azimuthal modes.</b> The model describes a single central channel;
+        it cannot reproduce the self-organized lattice of microdischarges even in principle —
+        in this geometry an off-axis channel turns into a ring.</li>
+      <li><b>The photoionization weights are carried over from the nitrogen spectrum.</b> Pure O₂
+        needs a spectral fit of its own; the absorption lengths do transfer legitimately, the weights do not.</li>
+      <li><b>The one-dimensional model does not reproduce a filament.</b> The whole area ignites at
+        once, so 1D is good for integral quantities and the qualitative picture, but not for morphology.</li>
+      <li><b>Runs at 10 and 14 kV break off at ignition.</b> A fix has been found and tested in 1D
+        and carried over to 2D, but not verified there — at high voltage the animation
+        stops at breakdown.</li>
+    </ul>
+  </div>
+
+  <footer>
+    <span lang="ru">Модель, код и разбор — <span class="mono">dbd-o2</span></span>
+    <span lang="en">Model, code and write-up — <span class="mono">dbd-o2</span></span>
+    <span lang="ru">Работает без сервера: чистый JavaScript и canvas, никаких внешних библиотек</span>
+    <span lang="en">Runs with no server: plain JavaScript and canvas, no external libraries</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var META = {
+    ru: {
+      title: 'Барьерный разряд в кислороде — численная модель плазмы',
+      desc: 'Fluid-модель диэлектрического барьерного разряда в чистом O₂ при атмосферном давлении: 1D-симулятор в реальном времени и 2D осесимметричный плеер с фотопроцессами.',
+      locale: 'ru_RU'
+    },
+    en: {
+      title: 'Fluid model of atmospheric-pressure plasma | DBD in oxygen',
+      desc: 'A fluid model of a dielectric barrier discharge in pure oxygen at atmospheric pressure, with a live 1D simulator and a 2D axisymmetric player.',
+      locale: 'en_US'
+    }
+  };
+  function setMeta(sel, val){ var e = document.querySelector(sel); if(e) e.setAttribute('content', val); }
+  var links = document.querySelectorAll('.lang a[data-lang-link]');
+
+  function apply(l){
+    document.documentElement.lang = l;
+    document.documentElement.setAttribute('data-lang', l);
+    window.LANG = l;
+    var m = META[l];
+    document.title = m.title;
+    setMeta('meta[name="description"]', m.desc);
+    setMeta('meta[property="og:title"]', m.title);
+    setMeta('meta[property="og:description"]', m.desc);
+    setMeta('meta[property="og:locale"]', m.locale);
+    setMeta('meta[name="twitter:title"]', m.title);
+    setMeta('meta[name="twitter:description"]', m.desc);
+    for(var i=0;i<links.length;i++){
+      var a = links[i], on = a.getAttribute('data-lang-link') === l;
+      if(on) a.setAttribute('aria-current','true'); else a.removeAttribute('aria-current');
+      var p = new URLSearchParams(location.search);
+      p.set('lang', a.getAttribute('data-lang-link'));
+      a.setAttribute('href', location.pathname + '?' + p.toString());
+    }
+  }
+
+  for(var i=0;i<links.length;i++){
+    links[i].addEventListener('click', function(ev){
+      ev.preventDefault();
+      var l = this.getAttribute('data-lang-link');
+      try{ localStorage.setItem('lang', l); }catch(e){}
+      apply(l);
+      var p = new URLSearchParams(location.search);
+      p.set('lang', l);
+      history.replaceState(null, '', location.pathname + '?' + p.toString());
+    });
+  }
+
+  apply(window.LANG || 'en');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- language: ?lang=ru|en -> localStorage.lang -> 'ru'; must run before styles/scripts -->
+<script>
+(function(){
+  var q=new URLSearchParams(location.search).get('lang'), s=null;
+  try{ s=localStorage.getItem('lang'); }catch(e){}
+  var l=(q==='en'||q==='ru')?q:((s==='en'||s==='ru')?s:'en');
+  if(q===l){ try{ localStorage.setItem('lang',l); }catch(e){} }
+  document.documentElement.lang=l;
+  document.documentElement.setAttribute('data-lang',l);
+  window.LANG=l;
+})();
+</script>
+<title>1D drift-diffusion simulator, nine species | DBD in oxygen</title>
+<meta name="description" content="A barrier discharge in oxygen simulated live in the browser: drift-diffusion transport, Poisson with surface charge and nine plasma species.">
+<meta name="robots" content="index,follow">
+<meta name="theme-color" content="#0a0d12">
+<link rel="canonical" href="https://barier.makseq.com/sim1d/">
+<link rel="alternate" hreflang="en" href="https://barier.makseq.com/sim1d/">
+<link rel="alternate" hreflang="ru" href="https://barier.makseq.com/sim1d/?lang=ru">
+<link rel="alternate" hreflang="x-default" href="https://barier.makseq.com/sim1d/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dielectric barrier discharge in oxygen">
+<meta property="og:url" content="https://barier.makseq.com/sim1d/">
+<meta property="og:title" content="1D drift-diffusion simulator, nine species | DBD in oxygen">
+<meta property="og:description" content="A barrier discharge in oxygen simulated live in the browser: drift-diffusion transport, Poisson with surface charge and nine plasma species.">
+<meta property="og:image" content="https://barier.makseq.com/og/sim1d.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The 1D DBD simulator: a slice through the discharge gap, current and voltage waveforms and a Lissajous figure">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="1D drift-diffusion simulator, nine species | DBD in oxygen">
+<meta name="twitter:description" content="A barrier discharge in oxygen simulated live in the browser: drift-diffusion transport, Poisson with surface charge and nine plasma species.">
+<meta name="twitter:image" content="https://barier.makseq.com/og/sim1d.jpg">
+<meta name="twitter:image:alt" content="The 1D DBD simulator: a slice through the discharge gap, current and voltage waveforms and a Lissajous figure">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://barier.makseq.com/sim1d/#webpage",
+      "url": "https://barier.makseq.com/sim1d/",
+      "name": "1D drift-diffusion simulator, nine species | DBD in oxygen",
+      "description": "A barrier discharge in oxygen simulated live in the browser: drift-diffusion transport, Poisson with surface charge and nine plasma species.",
+      "isPartOf": { "@id": "https://barier.makseq.com/#website" },
+      "inLanguage": "en",
+      "breadcrumb": { "@id": "https://barier.makseq.com/sim1d/#breadcrumb" },
+      "primaryImageOfPage": {
+        "@type": "ImageObject",
+        "url": "https://barier.makseq.com/og/sim1d.jpg",
+        "width": 1200,
+        "height": 630
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://barier.makseq.com/sim1d/#breadcrumb",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Dielectric barrier discharge in oxygen", "item": "https://barier.makseq.com/" },
+        { "@type": "ListItem", "position": 2, "name": "1D simulator", "item": "https://barier.makseq.com/sim1d/" }
+      ]
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://barier.makseq.com/sim1d/#app",
+      "name": "1D DBD simulator",
+      "url": "https://barier.makseq.com/sim1d/",
+      "applicationCategory": "Simulation",
+      "operatingSystem": "Web browser",
+      "browserRequirements": "Requires JavaScript and HTML5 canvas",
+      "isAccessibleForFree": true,
+      "inLanguage": ["en", "ru"],
+      "description": "A one-dimensional fluid model of a dielectric barrier discharge in pure oxygen, solved live in the browser: drift-diffusion transport in the local field approximation, the Poisson equation with variable permittivity and surface charge on the dielectric, nine species, waveforms and a Lissajous figure.",
+      "author": { "@id": "https://makseq.com/#person" },
+      "publisher": { "@id": "https://makseq.com/#person" },
+      "isPartOf": { "@id": "https://barier.makseq.com/#website" },
+      "offers": { "@type": "Offer", "price": 0, "priceCurrency": "USD" }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://makseq.com/#person",
+      "name": "Max Tkachenko",
+      "url": "https://makseq.com"
+    }
+  ]
+}
+</script>
+<!-- inline favicon: keeps the page dependency-free and silences the /favicon.ico 404 -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2310141a'/%3E%3Crect x='4' y='6' width='24' height='3' fill='%234b5566'/%3E%3Crect x='4' y='23' width='24' height='3' fill='%234b5566'/%3E%3Cpath d='M16 9 L12 16 L18 16 L14 23' stroke='%23ffd166' stroke-width='2.2' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- ══ A. HEADER ═══════════════════════════════════════════════════════════ -->
+<header class="zone-a" id="header">
+  <h1 class="brand"><span class="bolt" aria-hidden="true">⚡</span> DBD<span class="dot">·</span>O₂ <span class="brand-sub">1D</span></h1>
+
+  <label class="hdr-field">
+    <span class="hdr-label" data-i18n="hdr.preset">preset</span>
+    <select id="preset" data-i18n-attr="aria-label:hdr.presetAria" aria-label="Parameter preset">
+      <option value="filamentary" data-i18n="preset.filamentary">Filamentary</option>
+      <option value="townsend" data-i18n="preset.townsend">Townsend / homogeneous</option>
+      <option value="ozonizer" data-i18n="preset.ozonizer">Ozonizer</option>
+    </select>
+  </label>
+
+  <div class="hdr-summary mono" id="hdrSummary" data-i18n="hdr.summaryInit">U₀ 10.0 kV · f 10.0 kHz · gap 1.00 mm</div>
+
+  <div class="hdr-right">
+    <span class="run-badge" id="runBadge"><span class="led" aria-hidden="true"></span><span id="runText" data-i18n="run.paused">PAUSED</span></span>
+    <span class="mono muted" id="fpsText" data-i18n="hdr.fpsInit">– fps</span>
+    <span class="mono muted" id="speedText" data-i18n="hdr.speedInit">⟳ 1×</span>
+    <a class="home-link" href="/" data-i18n="hdr.home">← Barrier discharge in oxygen</a>
+    <nav class="lang" data-i18n-attr="aria-label:lang.aria" aria-label="Language"><a href="?lang=ru" data-lang-link="ru">RU</a><span class="sep">·</span><a href="?lang=en" data-lang-link="en">EN</a></nav>
+    <button class="icon-btn" id="btnHelp" data-i18n-attr="title:hdr.helpTitle;aria-label:hdr.helpAria" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</button>
+    <button class="icon-btn" id="btnDrawer" data-i18n-attr="title:hdr.drawerTitle;aria-label:hdr.drawerAria" title="Controls" aria-label="Open controls">☰</button>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- ══ B. GAP VIEW ══════════════════════════════════════════════════════ -->
+  <section class="panel zone-b" id="panelGap">
+    <div class="panel-head">
+      <h2 data-i18n="panel.gap">Discharge gap</h2>
+      <div class="seg" role="group" id="fieldSeg" data-i18n-attr="aria-label:gap.fieldAria" aria-label="Displayed field">
+        <button data-field="ne" class="on">n<sub>e</sub></button>
+        <button data-field="rho">ρ</button>
+        <button data-field="sion">S<sub>ion</sub></button>
+        <button data-field="Eabs">|E|</button>
+        <button data-field="EN">E/N</button>
+      </div>
+      <div class="head-tools">
+        <label class="chk"><input type="checkbox" id="gapLog" checked> <span data-i18n="gap.log">log</span></label>
+        <label class="chk"><input type="checkbox" id="gapAuto" checked> <span data-i18n="gap.auto">auto</span></label>
+        <div class="seg small" role="group" data-i18n-attr="aria-label:gap.modeAria" aria-label="Gap view mode">
+          <button id="viewSnap" class="on" data-i18n="gap.snapshot">snapshot</button>
+          <button id="viewStreak" data-i18n="gap.streak">x–t streak</button>
+        </div>
+        <button class="icon-btn" data-table="gap" data-i18n-attr="title:tool.table" title="Table view">⊞</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <canvas id="cvGap" role="img" data-i18n-attr="aria-label:gap.canvasAria" aria-label="Discharge gap field map"></canvas>
+      <div class="badge-tl mono" id="glowBadge" data-i18n="gap.glowBadge" hidden>afterglow ON</div>
+      <div class="readout mono" id="gapReadout"></div>
+    </div>
+    <div class="panel-foot mono muted" id="gapFoot" data-i18n="gap.foot">1D model · uniform in transverse direction</div>
+  </section>
+
+  <!-- ══ C. METRICS ═══════════════════════════════════════════════════════ -->
+  <section class="panel zone-c" id="panelMetrics">
+    <div class="panel-head">
+      <h2 data-i18n="panel.metrics">Metrics</h2>
+      <div class="head-tools mono muted" id="periodText" data-i18n="metrics.periodInit">period #0 · t = 0.000 ms</div>
+    </div>
+    <div class="panel-body metrics-grid" id="metrics"></div>
+    <div class="panel-foot mono" id="solverStatus" data-i18n="solver.statusInit">dt – · steps/frame – · wall→sim –</div>
+  </section>
+
+  <!-- ══ D. WAVEFORMS ═════════════════════════════════════════════════════ -->
+  <section class="panel zone-d" id="panelWave">
+    <div class="panel-head">
+      <h2 data-i18n="panel.wave">Waveforms</h2>
+      <div class="head-tools">
+        <div class="seg small" role="group" data-i18n-attr="aria-label:wave.scaleAria" aria-label="Current scale">
+          <button id="iLin" data-i18n="wave.lin">lin</button><button id="iLog" class="on" data-i18n="wave.log">log</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="showItot"> I<sub>total</sub></label>
+        <span class="mono muted" id="waveCursor" data-i18n="wave.cursorInit">t = –</span>
+        <button class="icon-btn" data-table="wave" data-i18n-attr="title:tool.table" title="Table view">⊞</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <canvas id="cvWave" role="img" data-i18n-attr="aria-label:wave.canvasAria" aria-label="Voltage and current waveforms"></canvas>
+      <div class="badge-tr mono" id="decBadge" hidden></div>
+    </div>
+  </section>
+
+  <!-- ══ E. Q–V LISSAJOUS ═════════════════════════════════════════════════ -->
+  <section class="panel zone-e" id="panelQV">
+    <div class="panel-head">
+      <h2><span data-i18n="panel.qv">Q–V Lissajous</span> <span class="muted" data-i18n="panel.qv.sub">(Manley)</span></h2>
+      <div class="head-tools">
+        <div class="seg small" role="group" data-i18n-attr="aria-label:qv.windowAria" aria-label="Lissajous window">
+          <button id="qv1" class="on" data-i18n="qv.win1">1 period</button><button id="qv8" data-i18n="qv.win8">last 8</button>
+        </div>
+        <button class="icon-btn" data-table="qv" data-i18n-attr="title:tool.table" title="Table view">⊞</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <canvas id="cvQV" role="img" data-i18n-attr="aria-label:qv.canvasAria" aria-label="Charge versus voltage Lissajous figure"></canvas>
+      <div class="badge-tr status-warn mono" id="qvWarn" data-i18n="qv.canvasWarnInit" hidden>⚠ non-ideal Lissajous</div>
+    </div>
+    <div class="panel-foot mono" id="qvFoot" data-i18n="qv.footInit">C<sub>diel</sub> – · C<sub>cell</sub> – · E – · P –</div>
+  </section>
+
+  <!-- ══ F. DENSITY PROFILES ══════════════════════════════════════════════ -->
+  <section class="panel zone-f" id="panelProf">
+    <div class="panel-head">
+      <h2><span data-i18n="panel.prof">Density profiles</span> <span class="muted" data-i18n="panel.prof.sub">log₁₀ m⁻³</span></h2>
+      <div class="head-tools">
+        <div class="seg small" role="group" data-i18n-attr="aria-label:prof.modeAria" aria-label="Profile mode">
+          <button id="profX" class="on" data-i18n="prof.x">x-profile</button><button id="profT" data-i18n="prof.t">time-series</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="cvdSafe"> <span data-i18n="prof.cvdSafe">CVD-safe</span></label>
+        <span class="mono muted" id="profCursor" data-i18n="prof.cursorInit">x = –</span>
+        <button class="icon-btn" data-table="prof" data-i18n-attr="title:tool.table" title="Table view">⊞</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <canvas id="cvProf" role="img" data-i18n-attr="aria-label:prof.canvasAria" aria-label="Species density profiles"></canvas>
+      <div class="tooltip mono" id="profTip" hidden></div>
+    </div>
+    <div class="panel-foot legend" id="legend"></div>
+  </section>
+
+  <!-- ══ G. CONTROLS ══════════════════════════════════════════════════════ -->
+  <section class="panel zone-g" id="panelCtl">
+    <div class="panel-head">
+      <h2 data-i18n="panel.ctl">Controls</h2>
+      <div class="head-tools">
+        <button class="btn tiny" id="btnResetSoft" data-i18n="ctl.resetSoft" data-i18n-attr="title:ctl.resetSoftTitle" title="Reset state, keep parameters">⟲ reset</button>
+        <button class="btn tiny" id="btnResetPreset" data-i18n="ctl.resetPreset" data-i18n-attr="title:ctl.resetPresetTitle" title="Reset to preset">⟲⟲ preset</button>
+      </div>
+    </div>
+    <div class="panel-body ctl-body" id="controls"></div>
+    <div class="panel-foot mono" id="gridInfo" data-i18n="ctl.gridInit">Δx – · λ_D – </div>
+  </section>
+</main>
+
+<!-- ══ H. TRANSPORT + TIMELINE ════════════════════════════════════════════ -->
+<footer class="zone-h" id="transport">
+  <div class="tr-row">
+    <div class="tr-buttons">
+      <button class="btn" id="btnReset" data-i18n-attr="title:tr.resetTitle" title="Reset to t=0 (R)">⏮</button>
+      <button class="btn wide" id="btnPlay" data-i18n="tr.play" data-i18n-attr="title:tr.playTitle" title="Play / pause (Space)">⏵ play</button>
+      <button class="btn" id="btnStep" data-i18n="tr.step" data-i18n-attr="title:tr.stepTitle" title="One solver step">step dt</button>
+      <button class="btn" id="btnPeriod" data-i18n="tr.period" data-i18n-attr="title:tr.periodTitle" title="Run exactly one period">1 period</button>
+      <button class="btn" id="btnSteady" data-i18n="tr.steady" data-i18n-attr="title:tr.steadyTitle" title="Run to steady state">run to steady</button>
+      <button class="btn" id="btnPrevEv" data-i18n="tr.prevEv" data-i18n-attr="title:tr.prevEvTitle" title="Previous breakdown (Shift+←)">⏮ event</button>
+      <button class="btn" id="btnNextEv" data-i18n="tr.nextEv" data-i18n-attr="title:tr.nextEvTitle" title="Next breakdown (Shift+→)">event ⏭</button>
+    </div>
+    <label class="tr-speed">
+      <span class="muted" data-i18n="tr.speed">speed</span>
+      <input type="range" id="speed" min="-9" max="-2" step="0.05" value="-3.7">
+      <span class="mono" id="speedLabel" data-i18n="tr.speedInit">–</span>
+    </label>
+    <div class="tr-exports">
+      <button class="btn" id="btnCSV">⤓ CSV</button>
+      <button class="btn" id="btnPNG">⤓ PNG</button>
+      <button class="btn" id="btnJSON">⤓ JSON</button>
+    </div>
+  </div>
+  <div class="tr-row tl-row">
+    <span class="tl-tag mono" data-i18n="tr.macro">MACRO</span>
+    <canvas id="cvMacro" class="tl-canvas" role="img" data-i18n-attr="aria-label:tr.macroAria" aria-label="Macro timeline with breakdown events"></canvas>
+    <span class="tl-tag mono" data-i18n="tr.micro">MICRO</span>
+    <canvas id="cvMicro" class="tl-canvas micro" role="img" data-i18n-attr="aria-label:tr.microAria" aria-label="Micro timeline lens"></canvas>
+    <label class="tr-speed lens">
+      <span class="muted" data-i18n="tr.lens">lens</span>
+      <input type="range" id="lens" min="-8.7" max="-2.3" step="0.05" value="-4">
+      <span class="seg">
+        <button class="on" id="lens1T" type="button" data-i18n="tr.lens1T" data-i18n-attr="title:tr.lens1TTitle" title="one full period">1 T</button>
+        <button id="lens8T" type="button" data-i18n="tr.lens8T" data-i18n-attr="title:tr.lens8TTitle" title="eight periods">8 T</button>
+        <button id="lensFil" type="button" data-i18n="tr.lensFil" data-i18n-attr="title:tr.lensFilTitle" title="filament scale, 50 ns">fil</button>
+      </span>
+      <span class="mono" id="lensLabel" data-i18n="tr.speedInit">–</span>
+    </label>
+  </div>
+</footer>
+
+<div class="live-region" id="live" aria-live="polite" role="status"></div>
+
+<!-- modal: table view / help -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="modalTitle" data-i18n="modal.titleInit">Table</h3><button class="icon-btn" id="modalClose" data-i18n-attr="aria-label:modal.closeAria" aria-label="Close">✕</button></div>
+    <div class="modal-body mono" id="modalBody"></div>
+  </div>
+</div>
+
+<script type="module" src="src/ui.js"></script>
+</body>
+</html>

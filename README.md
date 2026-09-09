@@ -1,5 +1,8 @@
 # dbd-o2 — ДБР в чистом кислороде: 2D осесимметричная fluid-модель с фотопроцессами
 
+> **English summary.** A self-consistent fluid model of a dielectric barrier discharge in pure O₂ at atmospheric pressure: drift-diffusion in the local field approximation, a Poisson equation with variable permittivity and surface charge on the barriers, nine particle species, photoprocesses. The 2D axisymmetric solver runs offline in Node.js and writes frames; the web player replays them. The 1D model runs live in the browser. Zero dependencies, zero build, zero CDNs. **Live site (English / Russian):** https://barier.makseq.com — its deployed copy is in [`site/`](site/) (precomputed run data is not in the repository; the site serves it from `site/data/`, ~51 MB, reproducible with `sim2d/run.mjs`). Built by Max Tkachenko together with Claude Code. The rest of this README is in Russian.
+
+
 Самосогласованная fluid-модель объёмного **диэлектрического барьерного разряда (ДБР)**
 в чистом O₂ при 1 атм. Основная часть — **2D осесимметричный (r,z) солвер с фотопроцессами**
 (офлайн-расчёт в node.js, результат — кадры на диске) и **веб-плеер**, который эти кадры

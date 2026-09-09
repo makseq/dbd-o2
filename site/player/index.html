@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+(function(){
+  var q=new URLSearchParams(location.search).get('lang'), s=null;
+  try{ s=localStorage.getItem('lang'); }catch(e){}
+  var l=(q==='en'||q==='ru')?q:((s==='en'||s==='ru')?s:'en');
+  if(q===l){ try{ localStorage.setItem('lang',l); }catch(e){} }
+  document.documentElement.lang=l;
+  document.documentElement.setAttribute('data-lang',l);
+  window.LANG=l;
+})();
+</script>
+<title>2D axisymmetric player, frame by frame | DBD in oxygen</title>
+<meta name="description" content="Watch a barrier discharge in oxygen frame by frame: electron density, electric field, glow and photoprocesses in a 2D axisymmetric model.">
+<meta name="robots" content="index,follow">
+<meta name="theme-color" content="#0a0d12">
+<link rel="canonical" href="https://barier.makseq.com/player/">
+<link rel="alternate" hreflang="en" href="https://barier.makseq.com/player/">
+<link rel="alternate" hreflang="ru" href="https://barier.makseq.com/player/?lang=ru">
+<link rel="alternate" hreflang="x-default" href="https://barier.makseq.com/player/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dielectric barrier discharge in oxygen">
+<meta property="og:url" content="https://barier.makseq.com/player/">
+<meta property="og:title" content="2D axisymmetric player, frame by frame | DBD in oxygen">
+<meta property="og:description" content="Watch a barrier discharge in oxygen frame by frame: electron density, electric field, glow and photoprocesses in a 2D axisymmetric model.">
+<meta property="og:image" content="https://barier.makseq.com/og/player.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The 2D axisymmetric DBD player: a colour map of electron density in the discharge gap with waveform plots">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="2D axisymmetric player, frame by frame | DBD in oxygen">
+<meta name="twitter:description" content="Watch a barrier discharge in oxygen frame by frame: electron density, electric field, glow and photoprocesses in a 2D axisymmetric model.">
+<meta name="twitter:image" content="https://barier.makseq.com/og/player.jpg">
+<meta name="twitter:image:alt" content="The 2D axisymmetric DBD player: a colour map of electron density in the discharge gap with waveform plots">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://barier.makseq.com/player/#webpage",
+      "url": "https://barier.makseq.com/player/",
+      "name": "2D axisymmetric player, frame by frame | DBD in oxygen",
+      "description": "Watch a barrier discharge in oxygen frame by frame: electron density, electric field, glow and photoprocesses in a 2D axisymmetric model.",
+      "isPartOf": { "@id": "https://barier.makseq.com/#website" },
+      "inLanguage": "en",
+      "breadcrumb": { "@id": "https://barier.makseq.com/player/#breadcrumb" },
+      "primaryImageOfPage": {
+        "@type": "ImageObject",
+        "url": "https://barier.makseq.com/og/player.jpg",
+        "width": 1200,
+        "height": 630
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://barier.makseq.com/player/#breadcrumb",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Dielectric barrier discharge in oxygen", "item": "https://barier.makseq.com/" },
+        { "@type": "ListItem", "position": 2, "name": "2D axisymmetric player", "item": "https://barier.makseq.com/player/" }
+      ]
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://barier.makseq.com/player/#app",
+      "name": "2D axisymmetric DBD player",
+      "url": "https://barier.makseq.com/player/",
+      "applicationCategory": "Simulation",
+      "operatingSystem": "Web browser",
+      "browserRequirements": "Requires JavaScript and HTML5 canvas",
+      "isAccessibleForFree": true,
+      "inLanguage": ["en", "ru"],
+      "description": "A player for precomputed runs of a 2D axisymmetric fluid model of a dielectric barrier discharge in pure oxygen: electron density, electric field, glow, surface charge and photoprocesses frame by frame, with waveforms, a Lissajous figure and CSV export.",
+      "author": { "@id": "https://makseq.com/#person" },
+      "publisher": { "@id": "https://makseq.com/#person" },
+      "isPartOf": { "@id": "https://barier.makseq.com/#website" },
+      "offers": { "@type": "Offer", "price": 0, "priceCurrency": "USD" }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://makseq.com/#person",
+      "name": "Max Tkachenko",
+      "url": "https://makseq.com"
+    }
+  ]
+}
+</script>
+<link rel="stylesheet" href="css/player.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>⚡</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-scroll">
+    <h1 class="brand"><span class="bolt" aria-hidden="true">⚡</span> <span data-i18n="brand.name">DBD · O₂</span> <span class="brand-sub" data-i18n="brand.sub">2D (r,z)</span></h1>
+
+    <label class="ctl">
+      <span class="ctl-lab" data-i18n="ctl.run">run</span>
+      <select id="runSel"></select>
+    </label>
+
+    <label class="ctl">
+      <span class="ctl-lab" data-i18n="ctl.data">data</span>
+      <select id="detailSel">
+        <option value="compact" data-i18n="ctl.data.compact">compact</option>
+        <option value="full" data-i18n="ctl.data.full">full</option>
+      </select>
+    </label>
+
+    <button id="cmpBtn" class="tbtn" data-i18n-attr="title:btn.compare.title">
+      ⇄ <span class="lbl" data-i18n="btn.compare">compare photo on/off</span>
+    </button>
+
+    <button id="plotsBtn" class="tbtn on" data-i18n-attr="title:btn.plots.title">📈<span class="lbl" data-i18n="btn.plots"> plots</span></button>
+
+    <span class="divider"></span>
+    <button id="expPng" class="tbtn" data-i18n-attr="title:btn.png.title">PNG</button>
+    <button id="expWebm" class="tbtn" data-i18n-attr="title:btn.webm.title">⏺ WebM</button>
+    <button id="expCsv" class="tbtn" data-i18n-attr="title:btn.csv.title">CSV</button>
+
+    <div class="spacer"></div>
+    <div id="status" class="status" data-i18n="status.loading">loading…</div>
+  </div>
+  <a class="home" href="/" data-i18n="nav.home">← Barrier discharge in oxygen</a>
+  <nav class="lang" aria-label="Language"><a href="?lang=ru" data-lang-link="ru">RU</a><span class="sep">·</span><a href="?lang=en" data-lang-link="en">EN</a></nav>
+</header>
+
+<main id="main">
+  <section id="stage">
+    <div class="scene-slot" id="slotA">
+      <canvas class="scene" id="canvasA"></canvas>
+    </div>
+    <div class="scene-slot hidden" id="slotB">
+      <canvas class="scene" id="canvasB"></canvas>
+    </div>
+    <div id="overlay" class="overlay hidden"><div class="overlay-box">
+      <div class="overlay-title" id="ovTitle" data-i18n="overlay.noData">No data</div>
+      <div class="overlay-text" id="ovText"></div>
+    </div></div>
+  </section>
+
+  <section id="plots">
+    <div class="pl-panel pl-metrics">
+      <div class="pl-h"><span data-i18n="panel.metrics">Metrics</span> <span class="pl-hint" id="plotsSrc"></span></div>
+      <div class="pl-body" id="metrics"></div>
+    </div>
+
+    <div class="pl-panel">
+      <div class="pl-h"><span data-i18n="panel.wave">U/I waveforms</span>
+        <span class="pl-hint" data-i18n="panel.wave.hint">click to seek</span>
+        <span class="spacer"></span>
+        <button class="mini on" id="btnLogI" data-i18n="btn.logI" data-i18n-attr="title:btn.logI.title">log I</button>
+        <button class="mini" id="btnWinZoom" data-i18n="btn.winzoom" data-i18n-attr="title:btn.winzoom.title">window = zoom</button>
+      </div>
+      <div class="pl-body h160"><canvas id="cvWave" class="plot"></canvas></div>
+    </div>
+
+    <div class="pl-panel">
+      <div class="pl-h"><span data-i18n="panel.liss">Q–V Lissajous figure</span>
+        <span class="pl-hint" data-i18n="panel.liss.hint">fit vs analytic</span>
+        <span class="spacer"></span>
+        <button class="mini" id="btnLissMode" data-i18n="liss.period">period</button>
+      </div>
+      <div class="pl-body h250"><canvas id="cvLiss" class="plot"></canvas></div>
+    </div>
+
+    <div class="pl-panel">
+      <div class="pl-h"><span data-i18n="panel.axial">Densities along the r = 0 axis</span>
+        <span class="pl-hint" data-i18n="panel.axial.hint">click to solo, alt to hide</span>
+        <span class="spacer"></span>
+        <button class="mini" id="btnAxMode" data-i18n="ax.axis">axis</button>
+      </div>
+      <div class="pl-body h170"><canvas id="cvAxial" class="plot"></canvas></div>
+    </div>
+
+    <div class="pl-panel">
+      <div class="pl-h"><span data-i18n="panel.radial">σ(r) on both surfaces</span>
+        <span class="spacer"></span>
+        <button class="mini" id="btnSigAsinh" data-i18n-attr="title:btn.sigasinh.title">asinh</button>
+      </div>
+      <div class="pl-body h150"><canvas id="cvRadial" class="plot"></canvas></div>
+    </div>
+
+    <div class="pl-panel">
+      <div class="pl-h"><span data-i18n="panel.photo">Photoprocesses</span> <span class="pl-hint" id="photoStat">…</span></div>
+      <div class="pl-body h170"><canvas id="cvPhoto" class="plot"></canvas></div>
+    </div>
+  </section>
+
+  <aside id="side">
+    <div class="panel">
+      <div class="panel-h" data-i18n="panel.field">Field</div>
+      <div id="fieldList" class="chips"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h" data-i18n="panel.scale">Scale</div>
+      <div class="row">
+        <div class="seg" id="segLog">
+          <button data-v="log" class="on" data-i18n="scale.log">log</button><button data-v="lin" data-i18n="scale.lin">lin</button>
+        </div>
+        <div class="seg" id="segScope">
+          <button data-v="frame" class="on" data-i18n="scale.frame">frame</button><button data-v="global" data-i18n="scale.global">whole run</button>
+        </div>
+      </div>
+      <div class="row">
+        <label class="ctl grow"><span class="ctl-lab" data-i18n="ctl.colormap">colormap</span>
+          <select id="cmapSel"></select>
+        </label>
+      </div>
+      <div class="row wrap">
+        <label class="chk"><input type="checkbox" id="glowChk"> <span data-i18n="opt.afterglow">afterglow</span></label>
+        <input type="range" id="glowRange" min="50" max="99" value="86" data-i18n-attr="title:opt.afterglow.title">
+      </div>
+      <div class="row wrap">
+        <label class="chk"><input type="checkbox" id="sigChk" checked> <span data-i18n="opt.sigma">σ(r) overlays</span></label>
+        <label class="chk"><input type="checkbox" id="probeChk" checked> <span data-i18n="opt.probe">probe under cursor</span></label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h" data-i18n="panel.readout">Instantaneous values</div>
+      <table class="kv" id="readout"><tbody></tbody></table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h" data-i18n="panel.runinfo">Run</div>
+      <div id="runInfo" class="info"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h" data-i18n="panel.limit">Model limitation</div>
+      <div class="info warn" id="limitNote"></div>
+    </div>
+  </aside>
+</main>
+
+<footer id="transport">
+  <div class="tbar">
+    <button class="tbtn" id="btnFirst" data-i18n-attr="title:tr.first">⏮</button>
+    <button class="tbtn" id="btnPrev" data-i18n-attr="title:tr.prev">◀︎|</button>
+    <button class="tbtn play" id="btnPlay" data-i18n-attr="title:tr.play">▶</button>
+    <button class="tbtn" id="btnNext" data-i18n-attr="title:tr.next">|▶︎</button>
+    <button class="tbtn" id="btnLast" data-i18n-attr="title:tr.last">⏭</button>
+
+    <label class="ctl"><span class="ctl-lab" data-i18n="ctl.speed">speed</span>
+      <select id="speedSel">
+        <option>0.1</option><option>0.25</option><option>0.5</option>
+        <option selected>1</option><option>2</option><option>4</option><option>10</option>
+      </select>
+    </label>
+
+    <span class="divider"></span>
+    <button class="tbtn" id="btnA" data-i18n-attr="title:tr.a">A</button>
+    <button class="tbtn" id="btnB" data-i18n-attr="title:tr.b">B</button>
+    <button class="tbtn" id="btnLoopClr" data-i18n="tr.loopclr" data-i18n-attr="title:tr.loopclr.title">✕ loop</button>
+    <span id="loopInfo" class="mono dim"></span>
+
+    <div class="spacer"></div>
+    <div id="clock" class="mono clock">—</div>
+  </div>
+  <canvas id="timeline"></canvas>
+  <div class="hint mono" data-i18n="tr.hint">
+    top — whole run (µs), the strip below it — frame recording density · bottom — pulse zoom (ns, wheel = zoom) ·
+    space play/pause · ←/→ frame · Shift+←/→ ×10 · [ ] loop
+  </div>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+(function(){
+  var q=new URLSearchParams(location.search).get('lang'), s=null;
+  try{ s=localStorage.getItem('lang'); }catch(e){}
+  var l=(q==='en'||q==='ru')?q:((s==='en'||s==='ru')?s:'en');
+  if(q===l){ try{ localStorage.setItem('lang',l); }catch(e){} }
+  document.documentElement.lang=l;
+  document.documentElement.setAttribute('data-lang',l);
+  window.LANG=l;
+})();
+</script>
+<title>plots-demo · plots of the 2D DBD player</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0a0d12">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>📈</text></svg>">
+<style>
+:root{
+  --bg-app:#0a0d12; --surface-1:#10141a; --surface-2:#161b23; --border:#242c38;
+  --border-strong:#333f4f; --text-primary:#e8eaed; --text-secondary:#a9b0bb;
+  --text-muted:#8b93a1; --accent:#4da3ff; --warning:#fab219; --critical:#d03b3b;
+  --font-ui:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:ui-monospace,"JetBrains Mono",SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;}
+body{background:var(--bg-app);color:var(--text-primary);font:13px var(--font-ui);
+  display:flex;flex-direction:column;overflow:hidden;}
+header{height:44px;flex:0 0 44px;display:flex;align-items:center;gap:0;padding:0 14px 0 0;
+  background:var(--surface-1);border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;}
+/* прокручиваемая часть шапки; переключатель языка вне её — не перекрывает контролы и виден на 390px */
+.hscroll{flex:1 1 auto;min-width:0;height:100%;display:flex;align-items:center;gap:14px;
+  padding:0 0 0 14px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;}
+.hscroll>*{flex:0 0 auto;}
+header>.lang{flex:0 0 auto;margin-left:10px;}
+header b{font-weight:600;letter-spacing:.02em;}
+header .sub{color:var(--text-muted);font-size:11px;border:1px solid var(--border-strong);
+  border-radius:3px;padding:1px 5px;}
+header .spacer{margin-left:auto;}
+.hscroll .spacer{flex:1 1 auto;margin-left:0;}
+button,select{background:var(--surface-2);color:var(--text-primary);border:1px solid var(--border-strong);
+  border-radius:3px;padding:3px 9px;font:12px var(--font-ui);cursor:pointer;}
+button:hover,select:hover{border-color:var(--accent);}
+button[aria-pressed=true]{border-color:var(--accent);color:var(--accent);}
+label.ctl{display:inline-flex;align-items:center;gap:5px;color:var(--text-muted);font-size:11px;
+  text-transform:uppercase;letter-spacing:.06em;}
+main{flex:1 1 auto;display:grid;gap:8px;padding:8px;min-height:0;
+  grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(3,minmax(0,1fr));}
+.panel{background:var(--surface-1);border:1px solid var(--border);border-radius:6px;
+  display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;}
+.panel>h2{margin:0;padding:5px 9px;font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--text-secondary);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+.panel>h2 .hint{font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:10px;}
+.panel>.body{flex:1 1 auto;min-height:0;position:relative;padding:2px;}
+canvas.plot{position:absolute;inset:2px;width:calc(100% - 4px);height:calc(100% - 4px);display:block;}
+#metrics{padding:6px;overflow:auto;}
+.p-wave{grid-column:1/5;} .p-liss{grid-column:5/7;}
+.p-photo{grid-column:1/5;} .p-metrics{grid-column:5/7;}
+.p-axial{grid-column:1/4;} .p-radial{grid-column:4/7;}
+footer{flex:0 0 auto;padding:5px 14px;background:var(--surface-1);border-top:1px solid var(--border);
+  color:var(--text-muted);font:11px var(--font-mono);display:flex;gap:16px;align-items:center;}
+#time{flex:1 1 auto;}
+#status{color:var(--warning);}
+.note{color:var(--text-muted);font-size:11px;max-width:38vw;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+.lang{display:inline-flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.06em;
+  border:1px solid var(--border-strong);border-radius:3px;padding:2px 7px;background:var(--surface-2);}
+.lang a{color:var(--text-muted);text-decoration:none;}
+.lang a:hover{color:var(--text-primary);}
+.lang a[aria-current="true"]{color:var(--accent);font-weight:600;}
+.lang .sep{color:var(--border-strong);}
+</style>
+</head>
+<body>
+<header>
+  <div class="hscroll">
+    <b>plots-demo</b><span class="sub" data-i18n="demo.sub">2D DBD · O₂ · axisymmetric</span>
+    <label class="ctl">run
+      <select id="run">
+        <option value="run-synth-compact" data-i18n="demo.run.synth">run-synth-compact</option>
+        <option value="run-default-compact" data-i18n="demo.run.default">run-default-compact</option>
+        <option value="run-nophoto-compact" data-i18n="demo.run.nophoto">run-nophoto-compact</option>
+        <option value="run-low-compact" data-i18n="demo.run.low">run-low-compact</option>
+        <option value="run-high-compact" data-i18n="demo.run.high">run-high-compact</option>
+        <option value="run-fast-compact" data-i18n="demo.run.fast">run-fast-compact</option>
+      </select>
+    </label>
+    <button id="play" aria-pressed="true" data-i18n="demo.pause">⏸ pause</button>
+    <label class="ctl"><span data-i18n="ctl.speed">speed</span>
+      <select id="speed">
+        <option value="0.25">0.25×</option><option value="1" selected>1×</option>
+        <option value="4">4×</option><option value="16">16×</option>
+      </select>
+    </label>
+    <button id="logI" aria-pressed="true" data-i18n="btn.logI">log I</button>
+    <button id="asinh" aria-pressed="false">σ: asinh</button>
+    <button id="mode">Lissajous: period</button>
+    <span class="spacer"></span>
+    <span id="warnbox" class="note"></span>
+  </div>
+  <nav class="lang" aria-label="Language"><a href="?lang=ru" data-lang-link="ru">RU</a><span class="sep">·</span><a href="?lang=en" data-lang-link="en">EN</a></nav>
+</header>
+
+<main>
+  <section class="panel p-wave">
+    <h2><span data-i18n="demo.hWave">D · Waveforms</span> <span class="hint" data-i18n="demo.hWave.hint">min/max decimation · click to seek</span></h2>
+    <div class="body"><canvas id="cvWave" class="plot"></canvas></div>
+  </section>
+
+  <section class="panel p-liss">
+    <h2><span data-i18n="demo.hLiss">E · Q–V Lissajous</span> <span class="hint" data-i18n="panel.liss.hint">fit vs analytic</span></h2>
+    <div class="body"><canvas id="cvLiss" class="plot"></canvas></div>
+  </section>
+
+  <section class="panel p-photo">
+    <h2><span data-i18n="demo.hPhoto">Photoprocesses</span> <span class="hint" data-i18n="demo.hPhoto.hint">volume rate, log axis</span></h2>
+    <div class="body"><canvas id="cvPhoto" class="plot"></canvas></div>
+  </section>
+
+  <section class="panel p-metrics">
+    <h2>C · Metrics</h2>
+    <div class="body" id="metrics" style="position:static;"></div>
+  </section>
+
+  <section class="panel p-axial">
+    <h2><span data-i18n="demo.hAxial">F · Densities along the axis</span> <span class="hint" data-i18n="demo.hAxial.hint">click to solo · alt+click to hide</span></h2>
+    <div class="body"><canvas id="cvAxial" class="plot"></canvas></div>
+  </section>
+
+  <section class="panel p-radial">
+    <h2 data-i18n="demo.hRadial">σ(r) on both surfaces</h2>
+    <div class="body"><canvas id="cvRadial" class="plot"></canvas></div>
+  </section>
+</main>
+
+<footer>
+  <span id="time" data-i18n="demo.loading">loading…</span>
+  <span id="stat"></span>
+  <span id="status"></span>
+</footer>
+
+<script type="module">
+import { Playback } from './js/loader.js';
+import {
+  WaveformPlot, LissajousPlot, RadialProfilePlot, AxialProfilePlot, PhotoPanel,
+  PhotoSeriesBuilder, cellVolumes, updateAxialFromPlayback,
+} from './js/plots.js';
+import { MetricsPanel, fmtSI, fmtTime, fmtFixed } from './js/metrics.js';
+import { t, dataText, applyStatic, initLangSwitch } from './js/i18n.js';
+
+applyStatic(null, 'demo.title');
+initLangSwitch();
+
+const $ = (id) => document.getElementById(id);
+const state = window.__state = { pb: null, plots: null, t: 0, playing: true, speed: 1, raf: 0, photo: null };
+
+async function load(runId) {
+  state.playing = false;
+  $('time').textContent = t('demo.loadingRun', { id: runId });
+  const pb = await Playback.load(`../data/${runId}/`, {
+    mode: 'eager',
+    onProgress: (a, b) => {
+      $('time').textContent = t('demo.progress', { id: runId, pct: (100 * a / (b || 1)).toFixed(0) });
+    },
+  });
+  state.pb = pb;
+  const P = pb.manifest.params;
+  state.vol = cellVolumes(pb.grid);
+  state.T = 1 / (P.freqKHz * 1e3);
+  // ВАЖНО: бюджет кадров может кончиться раньше ряда (в run-synth кадры обрываются
+  // на 13.9 мкс, а series идёт все 2 периода). Курсор ходит по РЯДУ, поля после
+  // последнего кадра честно замораживаются с явной подписью.
+  state.tFrameEnd = pb.frameTimes[pb.frameCount - 1];
+  state.tEnd = pb.series ? pb.series.t[pb.series.t.length - 1] : state.tFrameEnd;
+  state.t = pb.frameTimes[0];
+
+  if (state.plots) for (const p of Object.values(state.plots)) p.destroy && p.destroy();
+  if (state.mp) state.mp.destroy();
+  $('metrics').innerHTML = '';
+
+  const wf = new WaveformPlot($('cvWave'), pb.series, {
+    logCurrent: $('logI').getAttribute('aria-pressed') === 'true',
+    onSeek: (t) => { state.t = t; draw(); },
+  });
+  const lj = new LissajousPlot($('cvLiss'), pb.series, {
+    freqHz: P.freqKHz * 1e3,
+    geometry: { epsR: P.epsR, gapMM: P.gapMM, dielMM: P.dielMM, radiusMM: P.radiusMM },
+  });
+  const rp = new RadialProfilePlot($('cvRadial'), {
+    scale: $('asinh').getAttribute('aria-pressed') === 'true' ? 'asinh' : 'lin',
+  });
+  const ap = new AxialProfilePlot($('cvAxial'));
+  const pp = new PhotoPanel($('cvPhoto'));
+  state.plots = { wf, lj, rp, ap, pp };
+  state.mp = new MetricsPanel($('metrics'));
+
+  wf.setWindow(pb.frameTimes[0], state.tEnd);
+  pp.setWindow(pb.frameTimes[0], state.tFrameEnd);   // фоторяды живут только там, где есть кадры
+
+  // Пик тока и число пробоев — считаются один раз по всему ряду.
+  let ipk = 0;
+  for (let k = 0; k < pb.series.Itot.length; k++) ipk = Math.max(ipk, Math.abs(pb.series.Icond[k]));
+  state.ipk = ipk;
+  state.energy = 0;
+  const s = pb.series;
+  state.wcum = new Float64Array(s.t.length);
+  for (let k = 1; k < s.t.length; k++) {
+    state.wcum[k] = state.wcum[k - 1]
+      + 0.5 * (s.Uapp[k] * s.Itot[k] + s.Uapp[k - 1] * s.Itot[k - 1]) * (s.t[k] - s.t[k - 1]);
+  }
+  state.Vgas = state.vol.reduce((a, b) => a + b, 0);
+  state.breakdowns = countBreakdowns(s, ipk);
+
+  $('status').textContent = pb.manifest.meta && pb.manifest.meta.synthetic ? t('demo.synthWarn') : '';
+  $('warnbox').textContent = pb.manifest.limits
+    ? dataText(pb.manifest.limits.note).slice(0, 96) + '…' : '';
+
+  draw();
+  state.playing = true;
+  $('play').textContent = t('demo.pause');
+  $('play').setAttribute('aria-pressed', 'true');
+
+  // фоторяды строятся один раз, вне кадра анимации
+  pp.setData(null);
+  PhotoSeriesBuilder.build(pb, {
+    onProgress: (a, b) => { if (a === b) $('stat').textContent = t('demo.photoRows', { n: b }); },
+  }).then((d) => { state.photo = d; pp.setData(d); });
+}
+
+function countBreakdowns(s, ipk) {
+  if (!(ipk > 0)) return 0;
+  let n = 0, above = false;
+  for (let k = 0; k < s.t.length; k++) {
+    const a = Math.abs(s.Icond[k]) > 0.05 * ipk;
+    if (a && !above) n++;
+    above = a;
+  }
+  return n;
+}
+
+let lastMetrics = 0;
+function draw() {
+  const pb = state.pb;
+  if (!pb) return;
+  const { wf, lj, rp, ap, pp } = state.plots;
+  const i = pb.findFrame(state.t);
+  wf.setCursor(state.t); lj.setCursor(state.t); pp.setCursor(state.t);
+  const su = pb.getSurface(i);
+  rp.setData(pb.grid.rCenters, su.sigmaL, su.sigmaR);
+  updateAxialFromPlayback(ap, pb, i, { mode: 'axis', vol: state.vol });
+  wf.render(); lj.render(); rp.render(); ap.render(); pp.render();
+
+  const frozen = state.t > state.tFrameEnd * 1.0001;
+  $('time').textContent =
+    t('demo.clock', { t: fmtTime(state.t), i: i + 1, n: pb.frameCount, period: (state.t / state.T).toFixed(3) })
+    + (frozen ? t('demo.frozen', { t: fmtTime(state.tFrameEnd) }) : '');
+
+  const now = performance.now();
+  if (now - lastMetrics > 250) {              // метрики — 4 Гц (UI_SPEC §4.1)
+    lastMetrics = now;
+    const s = pb.series;
+    let k = 0, lo = 0, hi = s.t.length - 1;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (s.t[m] < state.t) lo = m + 1; else hi = m; }
+    k = lo;
+    const fit = lj.fit;
+    const wcum = state.wcum[k];
+    state.mp.update({
+      power: fit && fit.ok ? fit.P : null,
+      specEnergy: { v: wcum / state.Vgas / 1000, note: t('metrics.note.cumulative') },
+      ozone: s.o3ppm[k],
+      maxEN: s.maxEN[k],
+      Ipeak: state.ipk,
+      breakdowns: state.breakdowns / Math.max(1, state.tEnd / state.T),
+      C_diel: fit && fit.ok ? fit.C_diel : null,
+      C_cell: fit && fit.ok ? fit.C_cell : null,
+      energy: fit ? fit.W : null,
+      _status: {
+        frame: `${pb.findFrame(state.t) + 1}/${pb.frameCount}`,
+        dt: s.t[Math.min(k + 1, s.t.length - 1)] - s.t[k],
+        stepsPerFrame: pb.manifest.stats.steps / pb.frameCount,
+        limiter: fit && fit.warn ? t('metrics.limiterLiss') : 'ok',
+      },
+    });
+    $('warnbox').textContent = fit && fit.warn ? '⚠ ' + fit.warn : (fit && fit.note ? fit.note : '');
+    $('warnbox').style.color = fit && fit.warn ? 'var(--warning)' : 'var(--text-muted)';
+  }
+}
+
+let prev = 0;
+function loop(ts) {
+  state.raf = requestAnimationFrame(loop);
+  const dt = prev ? (ts - prev) / 1000 : 0;
+  prev = ts;
+  if (!state.playing || !state.pb) return;
+  // за 8 с реального времени проходим весь прогон (× speed)
+  state.t += (state.tEnd - state.pb.frameTimes[0]) * dt / 8 * state.speed;
+  if (state.t > state.tEnd) state.t = state.pb.frameTimes[0];
+  draw();
+}
+
+$('play').onclick = () => {
+  state.playing = !state.playing;
+  $('play').textContent = t(state.playing ? 'demo.pause' : 'demo.play');
+  $('play').setAttribute('aria-pressed', String(state.playing));
+};
+$('speed').onchange = (e) => { state.speed = parseFloat(e.target.value); };
+$('run').onchange = (e) => load(e.target.value);
+$('logI').onclick = (e) => {
+  const on = e.target.getAttribute('aria-pressed') !== 'true';
+  e.target.setAttribute('aria-pressed', String(on));
+  state.plots.wf.setLogCurrent(on);
+};
+$('asinh').onclick = (e) => {
+  const on = e.target.getAttribute('aria-pressed') !== 'true';
+  e.target.setAttribute('aria-pressed', String(on));
+  state.plots.rp.setScaleMode(on ? 'asinh' : 'lin');
+};
+const MODES = ['period', 'last8', 'all'];
+const MODE_LABEL = { period: 'liss.period', last8: 'liss.last8', all: 'liss.all' };
+let modeIdx = 0;
+$('mode').textContent = t('demo.liss', { mode: t(MODE_LABEL[MODES[modeIdx]]) });
+$('mode').onclick = () => {
+  modeIdx = (modeIdx + 1) % MODES.length;
+  $('mode').textContent = t('demo.liss', { mode: t(MODE_LABEL[MODES[modeIdx]]) });
+  state.plots.lj.setMode(MODES[modeIdx]);
+};
+
+window.addEventListener('error', (e) => {
+  $('status').textContent = t('demo.error', { msg: e.message });
+  $('status').style.color = 'var(--critical)';
+});
+window.__demoReady = false;
+load('run-synth-compact')
+  .then(() => { window.__demoReady = true; })
+  .catch((e) => {
+    $('time').textContent = t('demo.loadFailed', { msg: e.message });
+    $('status').textContent = t('demo.serveHint');
+    $('status').style.color = 'var(--critical)';
+    console.error(e);
+  });
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

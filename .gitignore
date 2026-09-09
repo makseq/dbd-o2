@@ -12,3 +12,9 @@ node_modules/
 *.log
 .DS_Store
 .playwright-mcp/
+
+# Опубликованная копия сайта barier.makseq.com лежит в site/ (без данных и скриншотов проверок)
+site/shots-i18n/
+site/*/shots/
+site/.data-sync.log
+site/shots/i18n-*.png
