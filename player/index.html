@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ДБР в O₂ — 2D осесимметричный плеер</title>
+<link rel="stylesheet" href="css/player.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>⚡</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="bolt">⚡</span> ДБР · O₂ <span class="brand-sub">2D (r,z)</span></div>
+
+  <label class="ctl">
+    <span class="ctl-lab">прогон</span>
+    <select id="runSel"></select>
+  </label>
+
+  <label class="ctl">
+    <span class="ctl-lab">данные</span>
+    <select id="detailSel">
+      <option value="compact">компакт</option>
+      <option value="full">полные</option>
+    </select>
+  </label>
+
+  <button id="cmpBtn" class="tbtn" title="Сравнение run-default и run-nophoto бок о бок">
+    ⇄ <span class="lbl">сравнить фото вкл/выкл</span>
+  </button>
+
+  <button id="plotsBtn" class="tbtn on" title="Показать/скрыть колонку графиков">📈<span class="lbl"> графики</span></button>
+
+  <span class="divider"></span>
+  <button id="expPng" class="tbtn" title="Сохранить текущий кадр как PNG">PNG</button>
+  <button id="expWebm" class="tbtn" title="Записать анимацию в WebM (MediaRecorder)">⏺ WebM</button>
+  <button id="expCsv" class="tbtn" title="Выгрузить временные ряды в CSV">CSV</button>
+
+  <div class="spacer"></div>
+  <div id="status" class="status">загрузка…</div>
+</header>
+
+<main id="main">
+  <section id="stage">
+    <div class="scene-slot" id="slotA">
+      <canvas class="scene" id="canvasA"></canvas>
+    </div>
+    <div class="scene-slot hidden" id="slotB">
+      <canvas class="scene" id="canvasB"></canvas>
+    </div>
+    <div id="overlay" class="overlay hidden"><div class="overlay-box">
+      <div class="overlay-title" id="ovTitle">Нет данных</div>
+      <div class="overlay-text" id="ovText"></div>
+    </div></div>
+  </section>
+
+  <section id="plots">
+    <div class="pl-panel pl-metrics">
+      <div class="pl-h">Метрики <span class="pl-hint" id="plotsSrc"></span></div>
+      <div class="pl-body" id="metrics"></div>
+    </div>
+
+    <div class="pl-panel">
+      <div class="pl-h">Осциллограммы U/I
+        <span class="pl-hint">клик = перемотка</span>
+        <span class="spacer"></span>
+        <button class="mini on" id="btnLogI" title="логарифмическая ось тока">лог I</button>
+        <button class="mini" id="btnWinZoom" title="окно графика = окно лупы таймлайна">окно=лупа</button>
+      </div>
+      <div class="pl-body h160"><canvas id="cvWave" class="plot"></canvas></div>
+    </div>
+
+    <div class="pl-panel">
+      <div class="pl-h">Фигура Лиссажу Q–V
+        <span class="pl-hint">фит vs аналитика</span>
+        <span class="spacer"></span>
+        <button class="mini" id="btnLissMode">период</button>
+      </div>
+      <div class="pl-body h250"><canvas id="cvLiss" class="plot"></canvas></div>
+    </div>
+
+    <div class="pl-panel">
+      <div class="pl-h">Плотности вдоль оси r=0
+        <span class="pl-hint">клик — solo, alt — скрыть</span>
+        <span class="spacer"></span>
+        <button class="mini" id="btnAxMode">ось</button>
+      </div>
+      <div class="pl-body h170"><canvas id="cvAxial" class="plot"></canvas></div>
+    </div>
+
+    <div class="pl-panel">
+      <div class="pl-h">σ(r) на обеих поверхностях
+        <span class="spacer"></span>
+        <button class="mini" id="btnSigAsinh" title="знаковая лог-подобная ось">asinh</button>
+      </div>
+      <div class="pl-body h150"><canvas id="cvRadial" class="plot"></canvas></div>
+    </div>
+
+    <div class="pl-panel">
+      <div class="pl-h">Фотопроцессы <span class="pl-hint" id="photoStat">…</span></div>
+      <div class="pl-body h170"><canvas id="cvPhoto" class="plot"></canvas></div>
+    </div>
+  </section>
+
+  <aside id="side">
+    <div class="panel">
+      <div class="panel-h">Поле</div>
+      <div id="fieldList" class="chips"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">Шкала</div>
+      <div class="row">
+        <div class="seg" id="segLog">
+          <button data-v="log" class="on">лог</button><button data-v="lin">лин</button>
+        </div>
+        <div class="seg" id="segScope">
+          <button data-v="frame" class="on">кадр</button><button data-v="global">весь прогон</button>
+        </div>
+      </div>
+      <div class="row">
+        <label class="ctl grow"><span class="ctl-lab">палитра</span>
+          <select id="cmapSel"></select>
+        </label>
+      </div>
+      <div class="row wrap">
+        <label class="chk"><input type="checkbox" id="glowChk"> послесвечение</label>
+        <input type="range" id="glowRange" min="50" max="99" value="86" title="скорость затухания следа">
+      </div>
+      <div class="row wrap">
+        <label class="chk"><input type="checkbox" id="sigChk" checked> накладки σ(r)</label>
+        <label class="chk"><input type="checkbox" id="probeChk" checked> зонд под курсором</label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">Мгновенные величины</div>
+      <table class="kv" id="readout"><tbody></tbody></table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">Прогон</div>
+      <div id="runInfo" class="info"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">Ограничение модели</div>
+      <div class="info warn" id="limitNote"></div>
+    </div>
+  </aside>
+</main>
+
+<footer id="transport">
+  <div class="tbar">
+    <button class="tbtn" id="btnFirst" title="в начало (Home)">⏮</button>
+    <button class="tbtn" id="btnPrev" title="кадр назад (←)">◀︎|</button>
+    <button class="tbtn play" id="btnPlay" title="пуск/пауза (пробел)">▶</button>
+    <button class="tbtn" id="btnNext" title="кадр вперёд (→)">|▶︎</button>
+    <button class="tbtn" id="btnLast" title="в конец (End)">⏭</button>
+
+    <label class="ctl"><span class="ctl-lab">скорость</span>
+      <select id="speedSel">
+        <option>0.1</option><option>0.25</option><option>0.5</option>
+        <option selected>1</option><option>2</option><option>4</option><option>10</option>
+      </select>
+    </label>
+
+    <span class="divider"></span>
+    <button class="tbtn" id="btnA" title="начало участка (клавиша [)">A</button>
+    <button class="tbtn" id="btnB" title="конец участка (клавиша ])">B</button>
+    <button class="tbtn" id="btnLoopClr" title="сбросить участок (\\)">✕ цикл</button>
+    <span id="loopInfo" class="mono dim"></span>
+
+    <div class="spacer"></div>
+    <div id="clock" class="mono clock">—</div>
+  </div>
+  <canvas id="timeline"></canvas>
+  <div class="hint mono">
+    верх — весь прогон (мкс), полоса под ним — плотность записи кадров · низ — лупа на импульс (нс, колесо = масштаб) ·
+    пробел пуск/пауза · ←/→ кадр · Shift+←/→ ×10 · [ ] цикл
+  </div>
+</footer>
+
+<script type="module" src="js/app.mjs"></script>
+</body>
+</html>

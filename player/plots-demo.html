@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>plots-demo · графики плеера 2D-ДБР</title>
+<style>
+:root{
+  --bg-app:#0a0d12; --surface-1:#10141a; --surface-2:#161b23; --border:#242c38;
+  --border-strong:#333f4f; --text-primary:#e8eaed; --text-secondary:#a9b0bb;
+  --text-muted:#8b93a1; --accent:#4da3ff; --warning:#fab219; --critical:#d03b3b;
+  --font-ui:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:ui-monospace,"JetBrains Mono",SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;}
+body{background:var(--bg-app);color:var(--text-primary);font:13px var(--font-ui);
+  display:flex;flex-direction:column;overflow:hidden;}
+header{height:44px;flex:0 0 44px;display:flex;align-items:center;gap:14px;padding:0 14px;
+  background:var(--surface-1);border-bottom:1px solid var(--border);white-space:nowrap;}
+header b{font-weight:600;letter-spacing:.02em;}
+header .sub{color:var(--text-muted);font-size:11px;border:1px solid var(--border-strong);
+  border-radius:3px;padding:1px 5px;}
+header .spacer{margin-left:auto;}
+button,select{background:var(--surface-2);color:var(--text-primary);border:1px solid var(--border-strong);
+  border-radius:3px;padding:3px 9px;font:12px var(--font-ui);cursor:pointer;}
+button:hover,select:hover{border-color:var(--accent);}
+button[aria-pressed=true]{border-color:var(--accent);color:var(--accent);}
+label.ctl{display:inline-flex;align-items:center;gap:5px;color:var(--text-muted);font-size:11px;
+  text-transform:uppercase;letter-spacing:.06em;}
+main{flex:1 1 auto;display:grid;gap:8px;padding:8px;min-height:0;
+  grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(3,minmax(0,1fr));}
+.panel{background:var(--surface-1);border:1px solid var(--border);border-radius:6px;
+  display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;}
+.panel>h2{margin:0;padding:5px 9px;font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--text-secondary);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+.panel>h2 .hint{font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:10px;}
+.panel>.body{flex:1 1 auto;min-height:0;position:relative;padding:2px;}
+canvas.plot{position:absolute;inset:2px;width:calc(100% - 4px);height:calc(100% - 4px);display:block;}
+#metrics{padding:6px;overflow:auto;}
+.p-wave{grid-column:1/5;} .p-liss{grid-column:5/7;}
+.p-photo{grid-column:1/5;} .p-metrics{grid-column:5/7;}
+.p-axial{grid-column:1/4;} .p-radial{grid-column:4/7;}
+footer{flex:0 0 auto;padding:5px 14px;background:var(--surface-1);border-top:1px solid var(--border);
+  color:var(--text-muted);font:11px var(--font-mono);display:flex;gap:16px;align-items:center;}
+#time{flex:1 1 auto;}
+#status{color:var(--warning);}
+.note{color:var(--text-muted);font-size:11px;max-width:38vw;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+</style>
+</head>
+<body>
+<header>
+  <b>plots-demo</b><span class="sub">2D ДБР · O₂ · осесимметрия</span>
+  <label class="ctl">run
+    <select id="run">
+      <option value="run-synth-compact">run-synth-compact (2 периода, синтетика)</option>
+      <option value="run-default-compact">run-default-compact (реальный, обрыв на пробое)</option>
+      <option value="run-nophoto-compact">run-nophoto-compact</option>
+      <option value="run-low-compact">run-low-compact (6 кВ)</option>
+      <option value="run-high-compact">run-high-compact (14 кВ)</option>
+      <option value="run-fast-compact">run-fast-compact (30 кГц)</option>
+    </select>
+  </label>
+  <button id="play" aria-pressed="true">⏸ пауза</button>
+  <label class="ctl">скорость
+    <select id="speed">
+      <option value="0.25">0.25×</option><option value="1" selected>1×</option>
+      <option value="4">4×</option><option value="16">16×</option>
+    </select>
+  </label>
+  <button id="logI" aria-pressed="true">лог I</button>
+  <button id="asinh" aria-pressed="false">σ: asinh</button>
+  <button id="mode">Лиссажу: период</button>
+  <span class="spacer"></span>
+  <span id="warnbox" class="note"></span>
+</header>
+
+<main>
+  <section class="panel p-wave">
+    <h2>D · Waveforms <span class="hint">min/max-декимация · клик = перемотка</span></h2>
+    <div class="body"><canvas id="cvWave" class="plot"></canvas></div>
+  </section>
+
+  <section class="panel p-liss">
+    <h2>E · Q–V Лиссажу <span class="hint">фит vs аналитика</span></h2>
+    <div class="body"><canvas id="cvLiss" class="plot"></canvas></div>
+  </section>
+
+  <section class="panel p-photo">
+    <h2>Фотопроцессы <span class="hint">объёмный темп, лог-ось</span></h2>
+    <div class="body"><canvas id="cvPhoto" class="plot"></canvas></div>
+  </section>
+
+  <section class="panel p-metrics">
+    <h2>C · Metrics</h2>
+    <div class="body" id="metrics" style="position:static;"></div>
+  </section>
+
+  <section class="panel p-axial">
+    <h2>F · Плотности вдоль оси <span class="hint">клик — solo · alt+клик — скрыть</span></h2>
+    <div class="body"><canvas id="cvAxial" class="plot"></canvas></div>
+  </section>
+
+  <section class="panel p-radial">
+    <h2>σ(r) на обеих поверхностях</h2>
+    <div class="body"><canvas id="cvRadial" class="plot"></canvas></div>
+  </section>
+</main>
+
+<footer>
+  <span id="time">загрузка…</span>
+  <span id="stat"></span>
+  <span id="status"></span>
+</footer>
+
+<script type="module">
+import { Playback } from './js/loader.mjs';
+import {
+  WaveformPlot, LissajousPlot, RadialProfilePlot, AxialProfilePlot, PhotoPanel,
+  PhotoSeriesBuilder, cellVolumes, updateAxialFromPlayback,
+} from './js/plots.mjs';
+import { MetricsPanel, fmtSI, fmtTime, fmtFixed } from './js/metrics.mjs';
+
+const $ = (id) => document.getElementById(id);
+const state = window.__state = { pb: null, plots: null, t: 0, playing: true, speed: 1, raf: 0, photo: null };
+
+async function load(runId) {
+  state.playing = false;
+  $('time').textContent = `загрузка ${runId}…`;
+  const pb = await Playback.load(`../data/${runId}/`, {
+    mode: 'eager',
+    onProgress: (a, b) => { $('time').textContent = `${runId}: ${(100 * a / (b || 1)).toFixed(0)} %`; },
+  });
+  state.pb = pb;
+  const P = pb.manifest.params;
+  state.vol = cellVolumes(pb.grid);
+  state.T = 1 / (P.freqKHz * 1e3);
+  // ВАЖНО: бюджет кадров может кончиться раньше ряда (в run-synth кадры обрываются
+  // на 13.9 мкс, а series идёт все 2 периода). Курсор ходит по РЯДУ, поля после
+  // последнего кадра честно замораживаются с явной подписью.
+  state.tFrameEnd = pb.frameTimes[pb.frameCount - 1];
+  state.tEnd = pb.series ? pb.series.t[pb.series.t.length - 1] : state.tFrameEnd;
+  state.t = pb.frameTimes[0];
+
+  if (state.plots) for (const p of Object.values(state.plots)) p.destroy && p.destroy();
+  if (state.mp) state.mp.destroy();
+  $('metrics').innerHTML = '';
+
+  const wf = new WaveformPlot($('cvWave'), pb.series, {
+    logCurrent: $('logI').getAttribute('aria-pressed') === 'true',
+    onSeek: (t) => { state.t = t; draw(); },
+  });
+  const lj = new LissajousPlot($('cvLiss'), pb.series, {
+    freqHz: P.freqKHz * 1e3,
+    geometry: { epsR: P.epsR, gapMM: P.gapMM, dielMM: P.dielMM, radiusMM: P.radiusMM },
+  });
+  const rp = new RadialProfilePlot($('cvRadial'), {
+    scale: $('asinh').getAttribute('aria-pressed') === 'true' ? 'asinh' : 'lin',
+  });
+  const ap = new AxialProfilePlot($('cvAxial'));
+  const pp = new PhotoPanel($('cvPhoto'));
+  state.plots = { wf, lj, rp, ap, pp };
+  state.mp = new MetricsPanel($('metrics'));
+
+  wf.setWindow(pb.frameTimes[0], state.tEnd);
+  pp.setWindow(pb.frameTimes[0], state.tFrameEnd);   // фоторяды живут только там, где есть кадры
+
+  // Пик тока и число пробоев — считаются один раз по всему ряду.
+  let ipk = 0;
+  for (let k = 0; k < pb.series.Itot.length; k++) ipk = Math.max(ipk, Math.abs(pb.series.Icond[k]));
+  state.ipk = ipk;
+  state.energy = 0;
+  const s = pb.series;
+  state.wcum = new Float64Array(s.t.length);
+  for (let k = 1; k < s.t.length; k++) {
+    state.wcum[k] = state.wcum[k - 1]
+      + 0.5 * (s.Uapp[k] * s.Itot[k] + s.Uapp[k - 1] * s.Itot[k - 1]) * (s.t[k] - s.t[k - 1]);
+  }
+  state.Vgas = state.vol.reduce((a, b) => a + b, 0);
+  state.breakdowns = countBreakdowns(s, ipk);
+
+  $('status').textContent = pb.manifest.meta && pb.manifest.meta.synthetic
+    ? '⚠ СИНТЕТИЧЕСКИЙ ПРОГОН — не результат решения уравнений' : '';
+  $('warnbox').textContent = pb.manifest.limits ? pb.manifest.limits.note.slice(0, 96) + '…' : '';
+
+  draw();
+  state.playing = true;
+  $('play').textContent = '⏸ пауза';
+  $('play').setAttribute('aria-pressed', 'true');
+
+  // фоторяды строятся один раз, вне кадра анимации
+  pp.setData(null);
+  PhotoSeriesBuilder.build(pb, {
+    onProgress: (a, b) => { if (a === b) $('stat').textContent = `фоторяды: ${b} кадров`; },
+  }).then((d) => { state.photo = d; pp.setData(d); });
+}
+
+function countBreakdowns(s, ipk) {
+  if (!(ipk > 0)) return 0;
+  let n = 0, above = false;
+  for (let k = 0; k < s.t.length; k++) {
+    const a = Math.abs(s.Icond[k]) > 0.05 * ipk;
+    if (a && !above) n++;
+    above = a;
+  }
+  return n;
+}
+
+let lastMetrics = 0;
+function draw() {
+  const pb = state.pb;
+  if (!pb) return;
+  const { wf, lj, rp, ap, pp } = state.plots;
+  const i = pb.findFrame(state.t);
+  wf.setCursor(state.t); lj.setCursor(state.t); pp.setCursor(state.t);
+  const su = pb.getSurface(i);
+  rp.setData(pb.grid.rCenters, su.sigmaL, su.sigmaR);
+  updateAxialFromPlayback(ap, pb, i, { mode: 'axis', vol: state.vol });
+  wf.render(); lj.render(); rp.render(); ap.render(); pp.render();
+
+  const frozen = state.t > state.tFrameEnd * 1.0001;
+  $('time').textContent =
+    `t = ${fmtTime(state.t)}   кадр ${i + 1}/${pb.frameCount}   период ${(state.t / state.T).toFixed(3)}`
+    + (frozen ? `   ⚠ кадры кончились на ${fmtTime(state.tFrameEnd)} — поля заморожены, ряды идут дальше` : '');
+
+  const now = performance.now();
+  if (now - lastMetrics > 250) {              // метрики — 4 Гц (UI_SPEC §4.1)
+    lastMetrics = now;
+    const s = pb.series;
+    let k = 0, lo = 0, hi = s.t.length - 1;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (s.t[m] < state.t) lo = m + 1; else hi = m; }
+    k = lo;
+    const fit = lj.fit;
+    const wcum = state.wcum[k];
+    state.mp.update({
+      power: fit && fit.ok ? fit.P : null,
+      specEnergy: { v: wcum / state.Vgas / 1000, note: 'накопл. / V_gas' },
+      ozone: s.o3ppm[k],
+      maxEN: s.maxEN[k],
+      Ipeak: state.ipk,
+      breakdowns: state.breakdowns / Math.max(1, state.tEnd / state.T),
+      C_diel: fit && fit.ok ? fit.C_diel : null,
+      C_cell: fit && fit.ok ? fit.C_cell : null,
+      energy: fit ? fit.W : null,
+      _status: {
+        frame: `${pb.findFrame(state.t) + 1}/${pb.frameCount}`,
+        dt: s.t[Math.min(k + 1, s.t.length - 1)] - s.t[k],
+        stepsPerFrame: pb.manifest.stats.steps / pb.frameCount,
+        limiter: fit && fit.warn ? 'Лиссажу ⚠' : 'ok',
+      },
+    });
+    $('warnbox').textContent = fit && fit.warn ? '⚠ ' + fit.warn : (fit && fit.note ? fit.note : '');
+    $('warnbox').style.color = fit && fit.warn ? 'var(--warning)' : 'var(--text-muted)';
+  }
+}
+
+let prev = 0;
+function loop(ts) {
+  state.raf = requestAnimationFrame(loop);
+  const dt = prev ? (ts - prev) / 1000 : 0;
+  prev = ts;
+  if (!state.playing || !state.pb) return;
+  // за 8 с реального времени проходим весь прогон (× speed)
+  state.t += (state.tEnd - state.pb.frameTimes[0]) * dt / 8 * state.speed;
+  if (state.t > state.tEnd) state.t = state.pb.frameTimes[0];
+  draw();
+}
+
+$('play').onclick = () => {
+  state.playing = !state.playing;
+  $('play').textContent = state.playing ? '⏸ пауза' : '▶ пуск';
+  $('play').setAttribute('aria-pressed', String(state.playing));
+};
+$('speed').onchange = (e) => { state.speed = parseFloat(e.target.value); };
+$('run').onchange = (e) => load(e.target.value);
+$('logI').onclick = (e) => {
+  const on = e.target.getAttribute('aria-pressed') !== 'true';
+  e.target.setAttribute('aria-pressed', String(on));
+  state.plots.wf.setLogCurrent(on);
+};
+$('asinh').onclick = (e) => {
+  const on = e.target.getAttribute('aria-pressed') !== 'true';
+  e.target.setAttribute('aria-pressed', String(on));
+  state.plots.rp.setScaleMode(on ? 'asinh' : 'lin');
+};
+const MODES = ['period', 'last8', 'all'];
+const MODE_LABEL = { period: 'период', last8: 'последние 8', all: 'все' };
+let modeIdx = 0;
+$('mode').onclick = () => {
+  modeIdx = (modeIdx + 1) % MODES.length;
+  $('mode').textContent = 'Лиссажу: ' + MODE_LABEL[MODES[modeIdx]];
+  state.plots.lj.setMode(MODES[modeIdx]);
+};
+
+window.addEventListener('error', (e) => {
+  $('status').textContent = 'ОШИБКА: ' + e.message;
+  $('status').style.color = 'var(--critical)';
+});
+window.__demoReady = false;
+load('run-synth-compact')
+  .then(() => { window.__demoReady = true; })
+  .catch((e) => {
+    $('time').textContent = 'не удалось загрузить прогон: ' + e.message;
+    $('status').textContent = 'запускать через HTTP-сервер из корня /p/dbd-o2';
+    $('status').style.color = 'var(--critical)';
+    console.error(e);
+  });
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
