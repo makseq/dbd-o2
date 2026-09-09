@@ -1,71 +1,73 @@
-# dbd-o2 — ДБР в чистом кислороде: 2D осесимметричная fluid-модель с фотопроцессами
+# dbd-o2 — DBD in pure oxygen: a 2D axisymmetric fluid model with photoprocesses
 
-> **English summary.** A self-consistent fluid model of a dielectric barrier discharge in pure O₂ at atmospheric pressure: drift-diffusion in the local field approximation, a Poisson equation with variable permittivity and surface charge on the barriers, nine particle species, photoprocesses. The 2D axisymmetric solver runs offline in Node.js and writes frames; the web player replays them. The 1D model runs live in the browser. Zero dependencies, zero build, zero CDNs. **Live site (English / Russian):** https://barier.makseq.com — its deployed copy is in [`site/`](site/) (precomputed run data is not in the repository; the site serves it from `site/data/`, ~51 MB, reproducible with `sim2d/run.mjs`). Built by Max Tkachenko together with Claude Code. The rest of this README is in Russian.
+Русская версия: [README.ru.md](README.ru.md)
+
+**Live site (English / Russian):** https://barier.makseq.com — its deployed copy is in [`site/`](site/) (the precomputed run data, ~51 MB, is not in the repository; it is reproducible with `sim2d/run.mjs`). Built by Max Tkachenko together with Claude Code.
 
 
-Самосогласованная fluid-модель объёмного **диэлектрического барьерного разряда (ДБР)**
-в чистом O₂ при 1 атм. Основная часть — **2D осесимметричный (r,z) солвер с фотопроцессами**
-(офлайн-расчёт в node.js, результат — кадры на диске) и **веб-плеер**, который эти кадры
-проигрывает. Одномерная модель, с которой всё начиналось, сохранена и описана в
+A self-consistent fluid model of a volumetric **dielectric barrier discharge (DBD)**
+in pure O₂ at 1 atm. The main part is a **2D axisymmetric (r,z) solver with photoprocesses**
+(offline computation in node.js, the result being frames on disk) and a **web player** that
+replays those frames. The one-dimensional model everything started with is kept and described in
 [`docs/README_1D.md`](docs/README_1D.md).
 
-Чистый ES2022. Ноль зависимостей, ноль сборки, ноль CDN — ни в солвере, ни в плеере.
+Pure ES2022. Zero dependencies, zero build, zero CDNs — neither in the solver nor in the player.
 
 ```
       r
-  R=0.5мм ┌───────┬───────────────────────┬───────┐
-          │ Al₂O₃ │   газовый зазор O₂    │ Al₂O₃ │   зеркальная стенка (Neumann)
-          │ ε_r=9 │  1.0 мм, 1 атм, 300 K │ ε_r=9 │
-    r=0   ├───────┼───────────────────────┼───────┤ ← ось симметрии (Neumann)
-          │0.5 мм │                       │0.5 мм │
+  R=0.5mm ┌───────┬───────────────────────┬───────┐
+          │ Al₂O₃ │      O₂ gas gap       │ Al₂O₃ │   mirror wall (Neumann)
+          │ ε_r=9 │  1.0 mm, 1 atm, 300 K │ ε_r=9 │
+    r=0   ├───────┼───────────────────────┼───────┤ ← axis of symmetry (Neumann)
+          │0.5 mm │                       │0.5 mm │
           └───────┴───────────────────────┴───────┘
-        z=0                                      z=2 мм
-     металл                                    металл
+        z=0                                      z=2 mm
+     metal                                    metal
    φ = U₀ sin(2πft)                              φ = 0
-   U₀ = 10 кВ, f = 10 кГц
+   U₀ = 10 kV, f = 10 kHz
 ```
 
-Затравка: фон 1e13 м⁻³ **плюс** гауссово пятно на оси у поверхности диэлектрика
-(σ_r = 40 мкм). Без пятна филамент не зарождается (`ERRATA B6`) — модель просто
-даёт диффузный таунсендовский разряд.
+Seeding: a 1e13 m⁻³ background **plus** a Gaussian spot on the axis at the dielectric surface
+(σ_r = 40 µm). Without the spot no filament is born (`ERRATA B6`) — the model simply
+yields a diffuse Townsend discharge.
 
 ---
 
-## Быстрый старт
+## Quick start
 
 ```bash
-./serve.sh                 # http://127.0.0.1:8777/player/  — 2D-плеер на готовых данных
-./serve.sh 9000            # другой порт
+./serve.sh                 # http://127.0.0.1:8777/player/  — 2D player on ready-made data
+./serve.sh 9000            # a different port
 ```
 
-ES-модули не грузятся с `file://` (CORS), поэтому нужен http-сервер; `serve.sh`
-использует `python3 -m http.server`, а если его нет — встроенный node-сервер.
-Готовые прогоны уже лежат в `data/`, считать ничего не нужно.
+ES modules do not load from `file://` (CORS), so an http server is required; `serve.sh`
+uses `python3 -m http.server`, and if it is absent, a built-in node server.
+Ready-made runs already lie in `data/`, nothing needs to be computed.
 
-| URL | что открывается |
+| URL | what opens |
 |---|---|
-| `/player/` | **2D-плеер** (r,z): поле, σ(r), осциллограммы, Лиссажу, фотопроцессы |
-| `/player/plots-demo.html` | автономная демостраница графиков (только графики, без сцены) |
-| `/index.html` | старый **1D**-UI с живым 1D-солвером (см. `docs/README_1D.md`) |
+| `/player/` | **2D player** (r,z): field, σ(r), waveforms, Lissajous, photoprocesses |
+| `/player/plots-demo.html` | standalone demo page of the plots (plots only, without the scene) |
+| `/index.html` | the old **1D** UI with the live 1D solver (see `docs/README_1D.md`) |
 
-### Свой расчёт
+### Your own run
 
 ```bash
-# один пробой в филаментном режиме, сетка 32×120, фотопроцессы включены
+# one breakdown in the filamentary regime, 32×120 mesh, photoprocesses enabled
 node sim2d/run.mjs --preset filament --nr 32 --nz 120 --nzDiel 12 \
      --betaR 1.4 --betaG 1.5 --U0kV 10 --freqKHz 10 --photo on \
      --periods 0.14 --out data/my-run
 
-node sim2d/summarize.mjs data                 # таблица приёмки по всем прогонам
+node sim2d/summarize.mjs data                 # acceptance table over all runs
 node sim2d/compare-photo.mjs data/run-default data/run-nophoto
 ```
 
-Прогресс идёт в **stderr**, в stdout — только итоговый JSON (можно в `| jq`).
-Раннер понимает `SIGINT/SIGTERM/SIGHUP` (мягкая остановка с записью манифеста),
+Progress goes to **stderr**, and stdout carries only the final JSON (it can be piped to `| jq`).
+The runner understands `SIGINT/SIGTERM/SIGHUP` (a soft stop with the manifest written out),
 `--maxSeconds`, `--maxSteps`, `--checkpointSec`, `--maxBytesFull/--maxBytesCompact`.
-Полный список — `node sim2d/run.mjs --help`.
+The full list is `node sim2d/run.mjs --help`.
 
-Ровно те пять прогонов, что лежат в `data/`:
+Exactly the five runs that are in `data/`:
 
 ```bash
 G="--preset filament --nr 32 --nz 120 --nzDiel 12 --betaR 1.4 --betaG 1.5"
@@ -76,7 +78,7 @@ node sim2d/run.mjs $G --out data/run-high    --U0kV 14 --freqKHz 10 --photo on  
 node sim2d/run.mjs $G --out data/run-fast    --U0kV 10 --freqKHz 30 --photo on  --periods 0.40
 ```
 
-### Тесты
+### Tests
 
 ```bash
 node sim2d/tests/physics.test.mjs    # 61
@@ -84,276 +86,276 @@ node sim2d/tests/poisson.test.mjs    # 14
 node sim2d/tests/solver.test.mjs     # 153
 node sim2d/tests/recorder.test.mjs   # 12
 node sim2d/tests/photo.test.mjs      # 18
-node test/solver.test.mjs            # 1D-ядро, 55 тестов (~70 с)
+node test/solver.test.mjs            # 1D core, 55 tests (~70 s)
 ```
 
 ---
 
-## Что считается
+## What is computed
 
-### Физика
+### Physics
 
-Дрейф-диффузионное приближение (LFA: коэффициенты — функции локального `E/N`),
-самосогласованное с уравнением Пуассона, плюс поверхностный заряд на обоих барьерах.
+The drift-diffusion approximation (LFA: the coefficients are functions of the local `E/N`),
+self-consistent with the Poisson equation, plus surface charge on both barriers.
 
-Сорта: `e`, `O₂⁺`, `O₄⁺`, `O⁻`, `O₂⁻`, `O₃⁻`, `O`, `O₃`, `O₂(a¹Δg)`.
-Ключевые каналы (полностью — `docs/PHYSICS.md`, поправки — `docs/ERRATA.md §D`):
+Species: `e`, `O₂⁺`, `O₄⁺`, `O⁻`, `O₂⁻`, `O₃⁻`, `O`, `O₃`, `O₂(a¹Δg)`.
+The key channels (in full — `docs/PHYSICS.md`, the corrections — `docs/ERRATA.md §D`):
 
-* ударная ионизация и **диссоциативное прилипание** `e + O₂ → O⁻ + O`,
-  трёхтельное `e + 2O₂ → O₂⁻ + O₂` — электроотрицательность газа определяет всё
-  поведение между импульсами;
-* конверсия `O⁻ → O₃⁻` (O₃⁻ — доминирующий отрицательный ион в паузе),
-  ион-ионная рекомбинация `k_ii = 2e-13 + 2e-37·N` (трёхтельный вклад — ×25 к
-  двухтельному при атмосферном давлении);
-* полевое отлипание **D6** и столкновительное **D1/D7** (см. ограничения: там
-  неустранённая неопределённость ×18–26);
-* образование озона, вторичная эмиссия с диэлектрика γ = 0.02.
+* impact ionization and **dissociative attachment** `e + O₂ → O⁻ + O`,
+  three-body `e + 2O₂ → O₂⁻ + O₂` — the electronegativity of the gas determines the entire
+  behaviour between pulses;
+* the conversion `O⁻ → O₃⁻` (O₃⁻ being the dominant negative ion during the pause),
+  ion-ion recombination `k_ii = 2e-13 + 2e-37·N` (the three-body contribution is ×25 of
+  the two-body one at atmospheric pressure);
+* field detachment **D6** and collisional detachment **D1/D7** (see the limitations: there
+  an unresolved uncertainty of ×18–26 remains);
+* ozone formation, secondary emission from the dielectric γ = 0.02.
 
-### Фотопроцессы (`docs/PHOTO_PROCESSES.md`)
+### Photoprocesses (`docs/PHOTO_PROCESSES.md`)
 
-Три спектральных окна, три механизма — все включаются/выключаются по отдельности
-(`--photo on|off` переключает разом):
+Three spectral windows, three mechanisms — all of them switchable individually
+(`--photo on|off` toggles them all at once):
 
-| механизм | как считается |
+| mechanism | how it is computed |
 |---|---|
-| **фотоионизация** | трёхчленная гельмгольцева аппроксимация (Бурдон), длины поглощения 238 / 90 / 14.8 мкм при p(O₂) = 760 Торр |
-| **фотоэмиссия** с барьеров | view factor от объёмного источника к поверхности |
-| **фотоотлипание** от O₃⁻ | прозрачное ядро `1/(4πR²)` — газ в этом окне не поглощает |
+| **photoionization** | a three-term Helmholtz approximation (Bourdon), absorption lengths 238 / 90 / 14.8 µm at p(O₂) = 760 Torr |
+| **photoemission** from the barriers | a view factor from the volumetric source to the surface |
+| **photodetachment** from O₃⁻ | a transparent kernel `1/(4πR²)` — the gas does not absorb in this window |
 
-Что это даёт количественно — раздел «Влияние фотопроцессов» ниже.
+What this yields quantitatively is in the section “Effect of the photoprocesses” below.
 
-### Численная схема (`docs/NUMERICS_2D.md`)
+### Numerical scheme (`docs/NUMERICS_2D.md`)
 
-* сетка (r,z) неравномерная: `betaR = 1.4` по радиусу, `betaG = 1.5` по зазору,
-  `dr₀ = 7.3 мкм` на оси (3–4 ячейки на полуширину филамента);
-* потоки — Шарфеттер–Гуммель, явный транспорт, `dt ≤ δ·dr²/(2D_e)`;
-* Пуассон — симметризованный `L_r`, разделимый предобусловливатель + PCG,
-  `strictGauss` (приёмка шага по невязке Гаусса);
-* шаг по времени адаптивный: CFL, диффузионный, реакционный, `dE/E`, σ-критерий;
-  в тёмной фазе лимитирует диффузия (`dt ≈ 3.5e-11 с`), на фронте — химия;
-* запись: `frames.bin` (квантованные поля, log/asinh-кодеки) + `series.bin`
-  (скалярные ряды) + `manifest.json`; два уровня детализации (`full`, `compact`).
+* the (r,z) mesh is non-uniform: `betaR = 1.4` along the radius, `betaG = 1.5` across the gap,
+  `dr₀ = 7.3 µm` on the axis (3–4 cells per half-width of the filament);
+* the fluxes are Scharfetter–Gummel, explicit transport, `dt ≤ δ·dr²/(2D_e)`;
+* the Poisson equation is a symmetrized `L_r`, a separable preconditioner + PCG,
+  `strictGauss` (acceptance of a step by the Gauss residual);
+* the time step is adaptive: CFL, diffusive, reactive, `dE/E`, the σ criterion;
+  in the dark phase diffusion is the limiter (`dt ≈ 3.5e-11 s`), on the front it is the chemistry;
+* the recording: `frames.bin` (quantized fields, log/asinh codecs) + `series.bin`
+  (scalar series) + `manifest.json`; two levels of detail (`full`, `compact`).
 
 ---
 
-## Плеер
+## Player
 
-![фронт стримера в полёте](docs/shots/02-front.png)
+![streamer front in flight](docs/shots/02-front.png)
 
-Слева — сцена (r,z), справа — колонка графиков, ниже — двухдорожечный таймлайн
-(весь прогон + лупа на импульс, колесо мыши меняет масштаб лупы).
+On the left is the scene (r,z), on the right a column of plots, below a two-track timeline
+(the whole run + a magnifier on the pulse, the mouse wheel changes the magnifier scale).
 
-**Сцена.** Ориентация: `z` — горизонталь (металл слева и справа), `r` — вертикаль,
-зеркально относительно оси. Растр строится в **физических координатах**, а не по
-индексам сетки: сетка неравномерная, растяжение по индексам показало бы филамент
-вдвое шире, чем он есть. Диэлектрики заштрихованы, поверхностный заряд σ(r)
-нарисован полосами у обеих поверхностей (расходящаяся шкала, симметричная
-нормировка по максимуму |σ| за весь прогон). Под сценой — профиль поля вдоль оси
-r = 0 с подписью полуширины `r½`.
+**The scene.** Orientation: `z` is the horizontal (metal on the left and on the right), `r` is the
+vertical, mirrored about the axis. The raster is built in **physical coordinates**, not by
+mesh indices: the mesh is non-uniform, and stretching by indices would show the filament
+twice as wide as it is. The dielectrics are hatched, the surface charge σ(r) is
+drawn as bands at both surfaces (a diverging scale, symmetric
+normalization by the maximum |σ| over the whole run). Below the scene is the field profile along the
+axis r = 0 with a label for the half-width `r½`.
 
-**Графики** (`player/js/plots.mjs`, контракт — `player/js/PLOTS_API.md`):
-осциллограммы U/I с min/max-декимацией (импульс 20 нс в окне 100 мкс не теряется),
-фигура Лиссажу Q–V с извлечением ёмкостей и сверкой с аналитикой, плотности вдоль
-оси, σ(r) на обеих поверхностях, панель фотопроцессов (объёмный темп событий, лог-ось,
-`S_ph/S_imp` в точке курсора) и плитки метрик.
+**The plots** (`player/js/plots.mjs`, the contract is `player/js/PLOTS_API.md`):
+U/I waveforms with min/max decimation (a 20 ns pulse in a 100 µs window is not lost),
+the Q–V Lissajous figure with capacitance extraction and a cross-check against the analytics, the densities along
+the axis, σ(r) at both surfaces, the photoprocess panel (volumetric event rate, log axis,
+`S_ph/S_imp` at the cursor point) and the metric tiles.
 
-**Синхронизация.** Один курсор времени на всё: скраб таймлайна двигает точку на
-фигуре Лиссажу и курсор осциллограммы, клик по осциллограмме перематывает плеер.
+**Synchronization.** One time cursor for everything: scrubbing the timeline moves the point on
+the Lissajous figure and the waveform cursor, and a click on the waveform seeks the player.
 
-**Экспорт.** `PNG` — текущий кадр (в режиме сравнения — обе сцены рядом) с подписью
-прогона, поля и времени; `⏺ WebM` — запись анимации через `MediaRecorder` от текущего
-кадра до конца прогона или до конца участка A–B; `CSV` — все временные ряды прогона
+**Export.** `PNG` — the current frame (in comparison mode, both scenes side by side) with a caption of
+the run, the field and the time; `⏺ WebM` — a recording of the animation via `MediaRecorder` from the current
+frame to the end of the run or to the end of the A–B segment; `CSV` — all the time series of the run
 (`t, Uapp, Ugap, Icond, Idisp, Itot, Q, maxEN, o3ppm, sigmaMax, photoEmitTotalL/R`).
 
-**Клавиши.** Пробел — пуск/пауза, ←/→ — кадр (Shift — ×10), Home/End, `[` `]` — метки
-цикла, `\` — сброс цикла.
+**Keys.** Space — play/pause, ←/→ — frame (Shift — ×10), Home/End, `[` `]` — loop
+markers, `\` — reset the loop.
 
-### Что видно на скриншотах (`docs/shots/`, реальный `run-default`, полные данные)
+### What is visible in the screenshots (`docs/shots/`, the real `run-default`, full data)
 
-| файл | что на нём |
+| file | what is on it |
 |---|---|
-| `01-before.png` | **t = 4.01 мкс, до пробоя.** Ток чисто ёмкостный (I пров. 4.2e-9 А против I смещ. 3.8e-6 А), max E/N = 92 Тд. Электронное облако широкое, снесено дрейфом к заземлённому барьеру; затравочное пятно уже размыто |
-| `02-front.png` | **t = 8.2984 мкс, головка стримера в полёте.** Ионизация сжата в пятно `r½ = 43 мкм` на оси при R = 500 мкм, максимум на z = 0.825 мм — головка оторвалась от катодного барьера и идёт к аноду. I пров. = 971 мкА, max E/N = 261 Тд |
-| `03-ipeak.png` | **t = 8.2994 мкс, пик тока (0.2096 А).** Объёмный заряд ρ: положительный (красный) фронт впереди и по бокам канала, отрицательный (синий) хвост на оси к барьеру z = 0.5 мм — классическая структура стримера. `r½ = 31.6 мкм`, max E/N = 1806 Тд |
-| `04-afterglow.png` | **послесвечение.** Накопленный след показывает путь головки через весь зазор; тёмное тело канала за фронтом — ионизация в канале подавлена, поле экранировано объёмным зарядом |
-| `05-compare.png` | **фото ВКЛ против фото ВЫКЛ**, обе сцены на общей шкале (без синхронной шкалы покадровая автошкала выравнивает яркость и разница исчезает) |
-| `06-plots-bottom.png` | нижние панели: плотности вдоль оси, σ(r) на обеих поверхностях, фотопроцессы (`S_ph/S_imp = 2.9e-4`) |
+| `01-before.png` | **t = 4.01 µs, before breakdown.** The current is purely capacitive (I cond. 4.2e-9 A against I disp. 3.8e-6 A), max E/N = 92 Td. The electron cloud is broad, carried by drift towards the grounded barrier; the seed spot is already smeared out |
+| `02-front.png` | **t = 8.2984 µs, the streamer head in flight.** The ionization is compressed into a spot `r½ = 43 µm` on the axis at R = 500 µm, the maximum at z = 0.825 mm — the head has detached from the cathode barrier and is heading for the anode. I cond. = 971 µA, max E/N = 261 Td |
+| `03-ipeak.png` | **t = 8.2994 µs, the current peak (0.2096 A).** The space charge ρ: a positive (red) front ahead of and beside the channel, a negative (blue) tail on the axis towards the barrier z = 0.5 mm — the classic streamer structure. `r½ = 31.6 µm`, max E/N = 1806 Td |
+| `04-afterglow.png` | **afterglow.** The accumulated trace shows the path of the head across the whole gap; the dark body of the channel behind the front — the ionization in the channel is suppressed, the field screened by the space charge |
+| `05-compare.png` | **photo ON against photo OFF**, both scenes on a common scale (without a synchronous scale the per-frame autoscale equalizes the brightness and the difference disappears) |
+| `06-plots-bottom.png` | the bottom panels: densities along the axis, σ(r) at both surfaces, photoprocesses (`S_ph/S_imp = 2.9e-4`) |
 
 ---
 
-## Валидация
+## Validation
 
-Полная таблица и разборы — `docs/VALIDATION.md`. Коротко:
+The full table and the analyses are in `docs/VALIDATION.md`. In brief:
 
-| # | Критерий | Вердикт |
+| # | Criterion | Verdict |
 |---|---|---|
-| V4a | `C_cell` (аналитика/солвер), 6.2587e-15 Ф | **ПРОЙДЕНО** (9 знаков) |
-| V13 | `C_cell·U₀` | **ПРОЙДЕНО** |
-| V8a/b | σ после пробоя, поле памяти | **ПРОЙДЕНО** (−10…−15 %) |
-| V9 | отрицательные ионы > n_e после импульса | **ПРОЙДЕНО** (×2.5e3 через 300 нс) |
-| V10 | выход O₃ | **ПРОЙДЕНО** по порядку величины |
-| V12 | сохранение заряда за период | **ПРОЙДЕНО**, 1e-14…3e-13 (после починки двух дефектов) |
-| V2c | `U_gap` зажигания не растёт с U₀ | **ПРОЙДЕНО** (разброс 4.6 % при U₀ = 6…20 кВ) |
-| V2a/b | численное значение напряжения пробоя | **НЕ СХОДИТСЯ** (+29.5 %), причина установлена: формативное запаздывание |
-| V7b/c | FWHM импульса и плотность тока | **НЕ СХОДИТСЯ** (×15…×270): нет внешней цепи, режим не таунсендовский |
-| V4b, V5 | ёмкости из петли Лиссажу, мощность по Мэнли | **НЕ ИЗМЕРЕНО**: полный период не досчитывается (см. ограничения) |
+| V4a | `C_cell` (analytics/solver), 6.2587e-15 F | **PASSED** (9 digits) |
+| V13 | `C_cell·U₀` | **PASSED** |
+| V8a/b | σ after breakdown, the memory field | **PASSED** (−10…−15 %) |
+| V9 | negative ions > n_e after the pulse | **PASSED** (×2.5e3 after 300 ns) |
+| V10 | O₃ yield | **PASSED** by order of magnitude |
+| V12 | charge conservation over a period | **PASSED**, 1e-14…3e-13 (after two defects were fixed) |
+| V2c | the ignition `U_gap` does not grow with U₀ | **PASSED** (a spread of 4.6 % at U₀ = 6…20 kV) |
+| V2a/b | the numerical value of the breakdown voltage | **DOES NOT MATCH** (+29.5 %), the cause established: formative lag |
+| V7b/c | the pulse FWHM and the current density | **DOES NOT MATCH** (×15…×270): there is no external circuit, the regime is not a Townsend one |
+| V4b, V5 | the capacitances from the Lissajous loop, the power by Manley’s method | **NOT MEASURED**: a full period is not simulated up to (see the limitations) |
 
-Отдельно проверено, что фит Лиссажу работает: на синтетическом прогоне с полным
-периодом `C_cell = 6.26 фФ` — **0.0 %** к аналитике, `C_diel = 69.1 фФ` (+10.4 %),
-R² = 0.997. На реальных (оборванных) прогонах панель показывает `C_cell` и
-**отказывается** предъявлять `C_diel`, вешая бейдж «петля не замкнута» — молча
-выдать наклон по кривой петле хуже, чем не выдать вовсе.
+Separately it has been checked that the Lissajous fit works: on a synthetic run with a full
+period `C_cell = 6.26 fF` — **0.0 %** against the analytics, `C_diel = 69.1 fF` (+10.4 %),
+R² = 0.997. On the real (truncated) runs the panel shows `C_cell` and
+**refuses** to present `C_diel`, hanging a “loop not closed” badge — silently
+issuing a slope over a curved loop is worse than not issuing one at all.
 
-### Пять прогонов в `data/`
+### The five runs in `data/`
 
-| прогон | U₀ / f | фото | досчитано | I_peak | n_e(0)/n_e(R) | r½ | филамент |
+| run | U₀ / f | photo | simulated up to | I_peak | n_e(0)/n_e(R) | r½ | filament |
 |---|---|---|---|---|---|---|---|
-| `run-default` | 10 кВ / 10 кГц | вкл | 8.30 мкс | 0.210 А | 1.2e6 | 31.0 мкм | **да** |
-| `run-nophoto` | 10 кВ / 10 кГц | выкл | 8.34 мкс | 0.448 А | 1.0e9 | 20.9 мкм | **да** |
-| `run-low` | 6 кВ / 10 кГц | вкл | 14.72 мкс | 0.277 А | 4.7e-4 | — | нет, диффузный |
-| `run-high` | 14 кВ / 10 кГц | вкл | 5.76 мкс | 0.273 А | 7.1e6 | 32.1 мкм | **да** |
-| `run-fast` | 10 кВ / 30 кГц | вкл | 2.60 мкс | 0.198 А | 2.2e8 | 28.8 мкм | **да** |
+| `run-default` | 10 kV / 10 kHz | on | 8.30 µs | 0.210 A | 1.2e6 | 31.0 µm | **yes** |
+| `run-nophoto` | 10 kV / 10 kHz | off | 8.34 µs | 0.448 A | 1.0e9 | 20.9 µm | **yes** |
+| `run-low` | 6 kV / 10 kHz | on | 14.72 µs | 0.277 A | 4.7e-4 | — | no, diffuse |
+| `run-high` | 14 kV / 10 kHz | on | 5.76 µs | 0.273 A | 7.1e6 | 32.1 µm | **yes** |
+| `run-fast` | 10 kV / 30 kHz | on | 2.60 µs | 0.198 A | 2.2e8 | 28.8 µm | **yes** |
 
-Все пять обрываются на **первом** пробое (6–15 % периода) — см. ограничения.
+All five break off at the **first** breakdown (6–15 % of a period) — see the limitations.
 
-### Влияние фотопроцессов (`run-default` против `run-nophoto`)
+### Effect of the photoprocesses (`run-default` against `run-nophoto`)
 
-| величина | фото ВКЛ | ВЫКЛ | разница |
+| quantity | photo ON | OFF | difference |
 |---|---|---|---|
-| момент зажигания | 8.2984 мкс | 8.3355 мкс | **−37.1 нс (−0.45 %)** |
-| I_peak | 0.2096 А | 0.4475 А | **−53 %** |
-| радиус r½ | 31.0 мкм | 20.9 мкм | **+48 %** |
-| n_e на оси | 1.62e23 | 4.02e23 м⁻³ | −60 % |
-| max E/N | 2461 Тд | 3367 Тд | −27 % |
-| энергия ∫U·I dt | 1.655e-7 Дж | 1.999e-7 Дж | −17 % |
+| ignition instant | 8.2984 µs | 8.3355 µs | **−37.1 ns (−0.45 %)** |
+| I_peak | 0.2096 A | 0.4475 A | **−53 %** |
+| radius r½ | 31.0 µm | 20.9 µm | **+48 %** |
+| n_e on the axis | 1.62e23 | 4.02e23 m⁻³ | −60 % |
+| max E/N | 2461 Td | 3367 Td | −27 % |
+| energy ∫U·I dt | 1.655e-7 J | 1.999e-7 J | −17 % |
 
-**На момент зажигания фотопроцессы влияют слабо, на морфологию — качественно:**
-без них модель даёт систематически пересжатый филамент — вдвое уже, вдвое плотнее,
-вдвое сильноточнее. Оговорка обязательна: оба снимка сняты в момент аварийной
-остановки, предъявлять можно отношения и знаки, а не абсолютные величины.
+**The photoprocesses have only a weak effect on the ignition instant, but a qualitative one on the morphology:**
+without them the model yields a systematically over-compressed filament — twice as narrow, twice as dense,
+twice as high in current. A caveat is mandatory: both snapshots were taken at the instant of the emergency
+stop, so ratios and signs may be presented, but not absolute values.
 
 ---
 
-## Ограничения — честный список
+## Limitations — an honest list
 
-Ни один пункт отсюда не «допиливается настройкой»; это границы применимости модели.
+Not a single item here is “fixed by tuning”; these are the boundaries of the model's applicability.
 
-### 1. Осесимметрия: азимутальных мод нет принципиально
+### 1. Axisymmetry: azimuthal modes are absent in principle
 
-Модель описывает **только центральный канал**. Внеосевой филамент в геометрии (r,z)
-становится **кольцом**, а не пятном. Азимутальные филаментационные моды отсутствуют
-не приближённо, а по построению: в уравнениях нет ∂/∂φ.
+The model describes **only the central channel**. An off-axis filament in the (r,z) geometry
+becomes a **ring**, not a spot. Azimuthal filamentation modes are absent
+not approximately but by construction: there is no ∂/∂φ in the equations.
 
-Следствие: **самоорганизация решётки микроразрядов не воспроизводится вообще** — ни
-гексагональная упаковка каналов, ни их взаимное отталкивание, ни статистика числа
-каналов на площадь. Всё, что показывает плеер, — это один канал на оси и его радиальный
-профиль. Сравнивать с фотографиями решётки микроразрядов нельзя.
+The consequence: **the self-organization of a microdischarge lattice is not reproduced at all** — neither
+the hexagonal packing of the channels, nor their mutual repulsion, nor the statistics of the number
+of channels per unit area. Everything the player shows is one channel on the axis and its radial
+profile. Comparison with photographs of a microdischarge lattice is not permissible.
 
-### 2. Прогоны обрываются на первом пробое
+### 2. The runs break off at the first breakdown
 
-Ни один реальный прогон не доходит до конца периода: солвер расходится в
-**пристеночной** ячейке на повторном зажигании (`VALIDATION.md §8`). Измельчение сетки
-это не лечит: структура остаётся шириной в одну ячейку, `ρ ∝ 1/dz`, момент аварии
-сходится к 22.3 мкс. Гипотеза «поможет граничное условие Хагелаара» **проверена и
-опровергнута** (§13.2): в 2D оно даёт аварию на 8.4534 мкс вместо 8.5071 мкс и `n_e`
-на два порядка хуже — потому что в 1D оно работало в связке с полунеявным
-пристеночным потоком, а в 2D пристеночные грани в полунеявную задачу не входят.
+Not a single real run reaches the end of a period: the solver diverges in the
+**near-wall** cell at the repeated ignition (`VALIDATION.md §8`). Mesh refinement
+does not cure this: the structure remains one cell wide, `ρ ∝ 1/dz`, and the instant of the failure
+converges to 22.3 µs. The hypothesis “the Hagelaar boundary condition will help” has been **tested and
+disproved** (§13.2): in 2D it gives a failure at 8.4534 µs instead of 8.5071 µs and an `n_e`
+two orders of magnitude worse — because in 1D it worked in combination with a semi-implicit
+near-wall flux, whereas in 2D the near-wall faces do not enter the semi-implicit problem.
 
-Отсюда: **V4b, V5 и V6 не измерены**, фигура Лиссажу не замкнута, и любые
-интегральные величины за период (мощность, перенесённый заряд) в плеере помечены
-предупреждением, а не показаны числом.
+Hence: **V4b, V5 and V6 are not measured**, the Lissajous figure is not closed, and any
+integral quantities over a period (the power, the transferred charge) are marked in the player with
+a warning rather than shown as a number.
 
-### 3. Цена счёта: требуемая сетка 80×160 нереальна
+### 3. The cost of computation: the required 80×160 mesh is unrealistic
 
-Замерено, а не оценено (`VALIDATION.md §13.1`):
+Measured, not estimated (`VALIDATION.md §13.1`):
 
-| сетка | dr₀ | dt в тёмной фазе | часов на 1 мкс |
+| mesh | dr₀ | dt in the dark phase | hours per 1 µs |
 |---|---|---|---|
-| 80×160 (требование ТЗ) | 2.56 мкм | 9.6e-12 с | **~1.5** → 2 периода = **12 суток** |
-| **32×120 (взято)** | 7.3 мкм | 3.5e-11 с | **0.23–0.29** |
+| 80×160 (the specification's requirement) | 2.56 µm | 9.6e-12 s | **~1.5** → 2 periods = **12 days** |
+| **32×120 (adopted)** | 7.3 µm | 3.5e-11 s | **0.23–0.29** |
 
-Причина схемная: явный транспорт, `dt ≤ δ·dr²/(2D_e)`, измельчение по радиусу бьёт
-дважды. Требование «40 мин на период» быстрее самой грубой допустимой сетки примерно
-в 600 раз. Лечится только неявным z-транспортом электронов (`NUMERICS_2D §4.5`).
+The cause lies in the scheme: explicit transport, `dt ≤ δ·dr²/(2D_e)`, and refinement along the radius hits
+twice. The requirement of “40 min per period” is faster than the coarsest admissible mesh by roughly
+a factor of 600. This is cured only by implicit z-transport of the electrons (`NUMERICS_2D §4.5`).
 
-### 4. D6 (полевое отлипание): неопределённость ×18–26 не устранена
+### 4. D6 (field detachment): the ×18–26 uncertainty has not been removed
 
-Два независимых экспертных ревью разошлись в том, какую массу подставлять в
-соотношение Ваннье при вычислении `T_eff`: полную массу нейтрала или приведённую.
-Разница в частоте отлипания — **×26.3 при 30 кВ/см и ×18.2 при 37.8 кВ/см**, и она
-зависит от поля, то есть не сводится к постоянному множителю.
+Two independent expert reviews diverged on which mass should be substituted into
+the Wannier relation when computing `T_eff`: the full mass of the neutral or the reduced one.
+The difference in the detachment frequency is **×26.3 at 30 kV/cm and ×18.2 at 37.8 kV/cm**, and it
+depends on the field, that is, it does not reduce to a constant factor.
 
-Принята **полная масса нейтрала** (`d6MassConvention: 'neutral'`) — по
-методологическому, а не физическому основанию: `k = 2.7e-16·√(T_eff/300)·exp(−5590/T_eff)`
-это эмпирический фит Kossyi et al. 1992, и подставлять в чужой предэкспонент чужое
-определение `T_eff` нельзя независимо от того, какая конвенция физичнее. Конвенция
-вынесена в параметр, развёртка по ней есть в `VALIDATION.md §5б`. **Это остаётся
-открытым вопросом, а не решённым.**
+The **full mass of the neutral** has been adopted (`d6MassConvention: 'neutral'`) — on
+methodological, not physical grounds: `k = 2.7e-16·√(T_eff/300)·exp(−5590/T_eff)`
+is an empirical fit by Kossyi et al. 1992, and substituting someone else's definition of `T_eff` into
+someone else's pre-exponential factor is not permissible regardless of which convention is the more physical. The convention
+has been exposed as a parameter, and a sweep over it is in `VALIDATION.md §5б`. **This remains
+an open question, not a settled one.**
 
-### 5. Веса фотоионизации перенесены из воздуха
+### 5. The photoionization weights are carried over from air
 
-Длины поглощения `λ_j` переносятся законно: это поглощение **кислородом**, оно
-масштабируется парциальным давлением O₂ (воздух → чистый O₂ — все длины короче в 5.0 раз).
-А вот веса `A_j = [0.07, 0.26, 0.67]` кодируют форму **азотного** эмиссионного спектра
-в окне 98–102.5 нм, свёрнутую с сечением поглощения O₂. Спектр собственного излучения
-O₂ в этом окне другой и **неизвестен**. Веса вынесены в параметр `photoIonWeights`,
-развёртка по ним обязательна при любой количественной интерпретации фотоионизации.
+The absorption lengths `λ_j` carry over legitimately: this is absorption **by oxygen**, it
+scales with the partial pressure of O₂ (air → pure O₂ — all the lengths are shorter by a factor of 5.0).
+The weights `A_j = [0.07, 0.26, 0.67]`, however, encode the shape of the **nitrogen** emission spectrum
+in the 98–102.5 nm window, convolved with the O₂ absorption cross-section. The spectrum of the O₂ self-emission
+in this window is different and **unknown**. The weights have been exposed as the parameter `photoIonWeights`,
+and a sweep over them is mandatory for any quantitative interpretation of the photoionization.
 
-### 6. γ = 0.02 — круговая калибровка, а не подтверждение
+### 6. γ = 0.02 is a circular calibration, not a confirmation
 
-Коэффициент вторичной эмиссии подобран так, чтобы получить напряжение пробоя 3.8 кВ,
-после чего 3.8 кВ использовалось как «валидация». Это круг. Правильная форма
-предъявления — зависимость `U_br(γ)` в диапазоне 0.005…0.05, она снята
-(`VALIDATION.md §5а`); как независимое подтверждение физики γ не годится.
+The secondary emission coefficient was tuned so as to obtain a breakdown voltage of 3.8 kV,
+after which 3.8 kV was used as “validation”. This is a circle. The correct form of
+presentation is the dependence `U_br(γ)` over the range 0.005…0.05, and it has been measured
+(`VALIDATION.md §5а`); as an independent confirmation of the physics γ is unsuitable.
 
-### 7. Прочее, что стоит знать
+### 7. Other things worth knowing
 
-* **LFA** (коэффициенты по локальному `E/N`) на фронте стримера строго говоря
-  неприменима — нужен перенос энергии электронов (LMEA). Это же — вероятная
-  первопричина п. 2.
-* **Нет внешней цепи** (балластный резистор, индуктивность). Из-за этого импульс тока
-  выходит в ×15…×270 короче и плотнее наблюдаемого (V7b/V7c).
-* **Затравка 1e13 м⁻³** — численная затравка первого запуска, а не «память предыдущего
-  цикла»: в чистом O₂ через 50 мкс память хранится в парах ионов, а не в свободных
-  электронах.
-* **В контейнер кадров пишутся 3 сорта из 9** (`n_e`, `n_O3m`, `n_O3`) — остальные шесть
-  в плеере честно помечены `×` «сорт не записан в прогоне» и не рисуются.
-  Столкновительного отлипания в контейнере нет вообще.
-* **`run-synth`** в списке прогонов — синтетический контейнер для отладки формата,
-  а не решение уравнений; плеер помечает его отдельно.
+* **LFA** (coefficients by the local `E/N`) is, strictly speaking, inapplicable on the streamer
+  front — electron energy transport (LMEA) is needed. This is also the likely
+  root cause of item 2.
+* **There is no external circuit** (a ballast resistor, an inductance). Because of this the current pulse
+  comes out ×15…×270 shorter and denser than the observed one (V7b/V7c).
+* **The 1e13 m⁻³ seeding** is a numerical seeding of the first launch, not the “memory of the previous
+  cycle”: in pure O₂ after 50 µs the memory is held in ion pairs, not in free
+  electrons.
+* **3 species out of 9 are written into the frame container** (`n_e`, `n_O3m`, `n_O3`) — the remaining six
+  are honestly marked in the player with `×` “species not recorded in the run” and are not drawn.
+  Collisional detachment is not in the container at all.
+* **`run-synth`** in the list of runs is a synthetic container for debugging the format,
+  not a solution of the equations; the player marks it separately.
 
 ---
 
-## Структура
+## Structure
 
 ```
-sim2d/            2D осесимметричный солвер
-  solver2d.mjs      шаг по времени, транспорт, ГУ, поверхностный заряд
-  physics2d.mjs     коэффициенты, химия, таблицы по E/N
-  poisson2d.mjs     Пуассон (r,z) + предобусловливатель + PCG
-  photo2d.mjs       три фотопроцесса (PHOTO_API.md — контракт)
-  recorder.mjs      формат записи: frames.bin / series.bin / manifest.json
-  run.mjs           CLI-раннер
-  summarize.mjs     приёмка: есть ли филамент, что досчитано
-  compare-photo.mjs сравнение прогонов фото вкл/выкл
-  tests/            258 тестов
-player/           веб-плеер (ES-модули, без сборки)
+sim2d/            2D axisymmetric solver
+  solver2d.mjs      time step, transport, BCs, surface charge
+  physics2d.mjs     coefficients, chemistry, tables by E/N
+  poisson2d.mjs     Poisson (r,z) + preconditioner + PCG
+  photo2d.mjs       three photoprocesses (PHOTO_API.md — the contract)
+  recorder.mjs      recording format: frames.bin / series.bin / manifest.json
+  run.mjs           CLI runner
+  summarize.mjs     acceptance: is there a filament, what was simulated up to
+  compare-photo.mjs comparison of runs with photo on/off
+  tests/            258 tests
+player/           web player (ES modules, no build)
   index.html, css/player.css
-  js/loader.mjs     чтение контейнера
-  js/scene.mjs      сцена (r,z), σ(r), профиль на оси, послесвечение, зонд
-  js/plots.mjs      осциллограммы, Лиссажу, профили, фотопанель
-  js/metrics.mjs    плитки метрик, форматтеры, аналитика ёмкостей
-  js/app.mjs        состояние, транспорт, таймлайн, сравнение, экспорт
-  js/PLOTS_API.md   контракт графиков
-  plots-demo.html   автономная демостраница графиков
-data/             результаты прогонов (+ `-compact` версии)
-docs/             ERRATA (приоритетна), NUMERICS_2D, PHOTO_PROCESSES, PHYSICS,
+  js/loader.mjs     reading the container
+  js/scene.mjs      scene (r,z), σ(r), profile on the axis, afterglow, probe
+  js/plots.mjs      waveforms, Lissajous, profiles, photo panel
+  js/metrics.mjs    metric tiles, formatters, capacitance analytics
+  js/app.mjs        state, transport, timeline, comparison, export
+  js/PLOTS_API.md   the plots contract
+  plots-demo.html   standalone demo page of the plots
+data/             run results (+ `-compact` versions)
+docs/             ERRATA (has priority), NUMERICS_2D, PHOTO_PROCESSES, PHYSICS,
                   VALIDATION, RATES_REVIEW, REFERENCE_TARGETS, UI_SPEC,
                   DIVERGENCE_ANALYSIS, shots/, README_1D.md
-src/, test/, index.html   1D-модель и её UI (docs/README_1D.md)
+src/, test/, index.html   the 1D model and its UI (docs/README_1D.md)
 ```
 
-Порядок чтения документов: **`docs/ERRATA.md` приоритетна над всеми остальными** —
-там блокеры A1…A6, ловушки осесимметричного решателя B1…B6, исправленные критерии
-валидации (раздел C) и исправленные коэффициенты (раздел D). Где ERRATA противоречит
-другим докам — права ERRATA.
+The reading order of the documents: **`docs/ERRATA.md` has priority over all the others** —
+it holds the blockers A1…A6, the traps of the axisymmetric solver B1…B6, the corrected validation
+criteria (section C) and the corrected coefficients (section D). Where ERRATA contradicts
+the other documents, ERRATA is right.
